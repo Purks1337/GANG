@@ -1,13 +1,14 @@
 import ProductDetail from "@/components/ProductDetail";
 
 interface ProductPageProps {
-  params: {
+  params: Promise<{
     slug: string;
-  };
+  }>;
 }
 
-export default function ProductPage({ params }: ProductPageProps) {
-  return <ProductDetail productSlug={params.slug} />;
+export default async function ProductPage({ params }: ProductPageProps) {
+  const { slug } = await params;
+  return <ProductDetail productSlug={slug} />;
 }
 
 export function generateStaticParams() {

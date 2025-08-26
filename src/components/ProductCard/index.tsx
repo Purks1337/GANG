@@ -3,7 +3,6 @@
 import Image from "next/image";
 
 interface ProductCardProps {
-  id: string;
   name: string;
   price: string;
   image: string;
@@ -11,10 +10,7 @@ interface ProductCardProps {
   onClick?: () => void;
 }
 
-export default function ProductCard({ id, name, price, image, onClick }: ProductCardProps) {
-  // Special styling for "basic GG t-shirt" to match Figma design
-  const isGGShirt = name === "basic GG t-shirt";
-  
+export default function ProductCard({ name, price, image, onClick }: ProductCardProps) {
   return (
     <div
       className="w-full max-w-[379.33px] mx-auto cursor-pointer group 

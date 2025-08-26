@@ -58,10 +58,9 @@ export default function Catalog() {
                             gap-y-8 sm:gap-y-12 xl:gap-y-[64px] 
                             justify-items-center">
               
-              {products.map((product, index) => (
+              {products.map((product) => (
                 <ProductCard
                   key={product.id}
-                  id={product.id}
                   name={product.name}
                   price={product.price}
                   image={product.image}
