@@ -37,14 +37,15 @@ export default function MainPage() {
             transition: "opacity 300ms ease",
           }}
         />
-        {/* Mobile: fixed 124x124 */}
+        {/* Mobile: width 60% of viewport, keep aspect ratio */}
         <Image
           src="/gang-logo.svg"
           alt="Gang Ground logo"
-          width={124}
-          height={124}
+          width={320}
+          height={120}
           priority
-          className="relative z-10 app-logo pointer-events-none block sm:hidden w-[124px] h-[124px]"
+          sizes="(max-width: 640px) 60vw"
+          className="relative z-10 app-logo pointer-events-none block sm:hidden w-[60vw] h-auto"
         />
         {/* ≥ sm: original proportions and responsive widths */}
         <Image
