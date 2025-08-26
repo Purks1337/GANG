@@ -5,9 +5,20 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { useCart } from "@/contexts/CartContext";
 
-// Mock product data - in real app this would come from CMS/API
-const getProductData = (slug: string) => {
-  const products: Record<string, any> = {
+interface IProduct {
+  id: string;
+  name: string;
+  price: string;
+  images: string[];
+  thumbnails: string[];
+  description: string[];
+  sizes: string[];
+  availableSizes: string[];
+  additionalInfo: string[];
+}
+
+const getProductData = (slug: string): IProduct => {
+  const products: Record<string, IProduct> = {
     "basic-t-shirt": {
       id: "1",
       name: "basic t-shirt",
@@ -21,7 +32,7 @@ const getProductData = (slug: string) => {
         "СООТВЕТСТВУЕТ РАЗМЕРУ. РЕКОМЕНДУЕМ ВЫБИРАТЬ ВАШ ОБЫЧНЫЙ РАЗМЕР."
       ],
       sizes: ["xs", "s", "m", "l", "xl", "xxl"],
-      availableSizes: ["s", "l", "xl", "xxl"], // Available sizes
+      availableSizes: ["s", "l", "xl", "xxl"],
       additionalInfo: [
         "Каждое изделие прошло специальную обработку и окрашивание для достижения особой мягкости и эффекта выстиранной ткани. Ввиду особенностей продукта, небольшие потёртости и выцветание являются нормой.",
         "РОСТ МО — 185 СМ, НА НЕМ ФУТБОЛКА РАЗМЕРА L.",
@@ -30,7 +41,6 @@ const getProductData = (slug: string) => {
         "МЕЖДУНАРОДНЫЕ ЗАКАЗЫ: НАЛОГИ И ТАМОЖЕННЫЕ ПОШЛИНЫ ОПЛАЧИВАЮТСЯ ПОКУПАТЕЛЕМ ПРИ ПОЛУЧЕНИИ ЗАКАЗА."
       ]
     }
-    // Add other products as needed
   };
   
   return products[slug] || products["basic-t-shirt"];
@@ -62,7 +72,6 @@ export default function ProductDetail({ productSlug }: ProductDetailProps) {
       size: selectedSize
     });
     
-    // Show success message or redirect to cart
     const confirmGoToCart = confirm("Товар добавлен в корзину! Перейти к оформлению?");
     if (confirmGoToCart) {
       router.push('/cart');
@@ -74,9 +83,7 @@ export default function ProductDetail({ productSlug }: ProductDetailProps) {
       <div className="max-w-[1555px] mx-auto px-4 sm:px-6">
         <div className="flex flex-col lg:flex-row gap-6 lg:gap-8">
           
-          {/* Left side - Images (responsive) */}
           <div className="flex-1 max-w-[793px]">
-            {/* Main Image */}
             <div className="relative w-full bg-white overflow-hidden mb-4
                             h-[400px] sm:h-[500px] md:h-[600px] lg:h-[751px]
                             rounded-[16px] sm:rounded-[20px] lg:rounded-[24px]">
@@ -89,7 +96,6 @@ export default function ProductDetail({ productSlug }: ProductDetailProps) {
               />
             </div>
             
-            {/* Thumbnails */}
             <div className="flex gap-2 sm:gap-3 lg:gap-4 overflow-x-auto pb-2">
               {product.thumbnails.map((thumb: string, index: number) => (
                 <button
@@ -115,10 +121,8 @@ export default function ProductDetail({ productSlug }: ProductDetailProps) {
             </div>
           </div>
 
-          {/* Right side - Product Info (responsive) */}
           <div className="flex-1 max-w-[714px]">
             
-            {/* Product Name & Price */}
             <div className="mb-6 sm:mb-8">
               <h1 className="font-extrabold tracking-[-0.33px] mb-3 sm:mb-4
                              text-[28px] sm:text-[30px] lg:text-[33px]
@@ -132,7 +136,6 @@ export default function ProductDetail({ productSlug }: ProductDetailProps) {
               </p>
             </div>
 
-            {/* Features */}
             <div className="mb-6 sm:mb-8">
               <ul className="space-y-3 sm:space-y-4">
                 {product.description.map((feature: string, index: number) => (
@@ -147,7 +150,6 @@ export default function ProductDetail({ productSlug }: ProductDetailProps) {
               </ul>
             </div>
 
-            {/* Size Selection */}
             <div className="mb-6 sm:mb-8">
               <h3 className="font-semibold mb-4 sm:mb-6
                              text-[24px] sm:text-[26px] lg:text-[28px]
@@ -182,7 +184,6 @@ export default function ProductDetail({ productSlug }: ProductDetailProps) {
               </div>
             </div>
 
-            {/* Additional Info */}
             <div className="mb-6 sm:mb-8">
               <div className="space-y-3 sm:space-y-4">
                 {product.additionalInfo.map((info: string, index: number) => (
@@ -195,7 +196,6 @@ export default function ProductDetail({ productSlug }: ProductDetailProps) {
               </div>
             </div>
 
-            {/* Add to Cart Button */}
             <button
               onClick={handleAddToCart}
               className="rounded-full bg-brand-green text-black font-black uppercase 
