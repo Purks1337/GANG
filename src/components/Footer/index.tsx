@@ -109,13 +109,18 @@ export default function Footer() {
             <svg viewBox="0 0 24 24" className="w-8 h-8" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" /></svg>
           </button>
 
-          {/* Nav column (design: centered fixed width 228px) */}
-          <nav className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[228px] flex flex-col items-center gap-12">
-            <a href="#" className="font-black text-[28px] leading-[120%] tracking-[-.015em] uppercase text-[#F5F5E6] text-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-green/70 rounded">Каталог</a>
-            <a href="#" className="font-black text-[28px] leading-[120%] tracking-[-.015em] uppercase text-[#F5F5E6] text-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-green/70 rounded">История</a>
-            <a href="#" className="font-black text-[28px] leading-[120%] tracking-[-.015em] uppercase text-[#F5F5E6] text-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-green/70 rounded">Коллаборации</a>
-            <a href="#" className="font-black text-[28px] leading-[120%] tracking-[-.015em] uppercase text-[#F5F5E6] text-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-green/70 rounded">Контакты</a>
-          </nav>
+          {/* Left glass panel matching Figma auto layout */}
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="absolute left-0 top-0 w-[320px] h-[694px] p-8 flex flex-col justify-end items-start gap-[120px] rounded-[100px] border border-white/10 bg-glass-tint/60 backdrop-blur-[6px]"
+          >
+            <nav className="flex flex-col items-start gap-[120px]">
+              <a href="#" className="font-black text-[24px] leading-[120%] tracking-[-.015em] uppercase text-[#F5F5E6] text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-green/70 rounded">Каталог</a>
+              <a href="#" className="font-black text-[24px] leading-[120%] tracking-[-.015em] uppercase text-[#F5F5E6] text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-green/70 rounded">История</a>
+              <a href="#" className="font-black text-[24px] leading-[120%] tracking-[-.015em] uppercase text-[#F5F5E6] text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-green/70 rounded">Коллаборации</a>
+              <a href="#" className="font-black text-[24px] leading-[120%] tracking-[-.015em] uppercase text-[#F5F5E6] text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-green/70 rounded">Контакты</a>
+            </nav>
+          </div>
         </div>
       )}
     </footer>
