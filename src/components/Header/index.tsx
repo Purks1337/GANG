@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { applyTheme, setStoredTheme } from "@/utils/theme";
+import { useCart } from "@/contexts/CartContext";
 
 function SunIcon() {
   return (
@@ -89,6 +91,8 @@ function MoonIcon() {
 
 export default function Header() {
   const [isNight, setIsNight] = useState(true);
+  const { totalItems } = useCart();
+  const router = useRouter();
 
   // Initialize local switch state from current DOM/theme
   useEffect(() => {
@@ -130,11 +134,16 @@ export default function Header() {
         <button
           type="button"
           aria-label="Открыть корзину"
+          onClick={() => router.push('/cart')}
           className="group absolute right-2 top-4 sm:static flex items-center gap-2 sm:gap-2 px-4 sm:px-[16px] sm:py-[12px] h-10 sm:h-auto rounded-full border border-white/10 bg-glass-tint/60 sm:bg-glass-tint/40 backdrop-blur-[6px] sm:backdrop-blur-md pointer-events-auto transition-colors duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-green/70"
           style={{ top: 'max(1rem, env(safe-area-inset-top))' }}
         >
           <span className="font-black text-base leading-[120%] tracking-[-.08em] uppercase text-foreground transition-colors duration-200 group-hover:text-brand-green group-hover:underline sm:text-2xl">КОРЗИНА</span>
-          <span className="inline-flex items-center justify-center w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-brand-green text-black text-base sm:text-[20px] font-black">0</span>
+          <span className={`inline-flex items-center justify-center w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-brand-green text-black text-base sm:text-[20px] font-black transition-all duration-200 ${
+            totalItems > 0 ? 'scale-110' : 'scale-100'
+          }`}>
+            {totalItems}
+          </span>
         </button>
       </div>
     </header>

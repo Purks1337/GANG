@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import Header from "@/components/Header";
 import Navigation from "@/components/Navigation";
+import { CartProvider } from "@/contexts/CartContext";
 
 const montserrat = Montserrat({ subsets: ["latin"] });
 
@@ -39,9 +40,11 @@ export default function RootLayout({
         <ThemeInitScript />
       </head>
       <body className={`${montserrat.className}`}>
-        <Header />
-        {children}
-        <Navigation />
+        <CartProvider>
+          <Header />
+          {children}
+          <Navigation />
+        </CartProvider>
       </body>
     </html>
   );

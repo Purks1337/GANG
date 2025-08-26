@@ -1,9 +1,9 @@
 @import "tailwindcss";
 
 :root {
+  /* Light theme - exact Figma colors */
   --background: #ffffff;
-  /* Primary text color for light theme (brand white) */
-  --foreground: #F5F5E6;
+  --foreground: #000000;
   /* Glass panels should stay dark in both themes */
   --glass-tint: #000000;
   /* Main overlay opacity: 0 on light, overridden in dark */
@@ -27,15 +27,17 @@
 /* System preference fallback when user has not chosen explicitly */
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    /* Dark theme - exact Figma colors */
+    --background: #141414;
+    --foreground: #ffffff;
   }
 }
 
 /* Explicit dark theme selected by user — overrides system preference */
 :root.theme-dark {
-  --background: #0a0a0a;
-  --foreground: #ededed;
+  /* Dark theme - exact Figma colors */
+  --background: #141414;
+  --foreground: #ffffff;
   --glass-tint: #000000;
   --overlay-opacity: 0.5;
   --logo-glow-opacity: 0;
