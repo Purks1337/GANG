@@ -109,12 +109,12 @@ export default function Footer() {
             <svg viewBox="0 0 24 24" className="w-8 h-8" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" /></svg>
           </button>
 
-          {/* Nav column */}
-          <nav className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full px-4 flex flex-col justify-center items-center gap-12">
-            <a href="#" className="font-black text-[24px] leading-[120%] tracking-[-.015em] uppercase text-[#F5F5E6] text-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-green/70 rounded">Каталог</a>
-            <a href="#" className="font-black text-[24px] leading-[120%] tracking-[-.015em] uppercase text-[#F5F5E6] text-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-green/70 rounded">История</a>
-            <a href="#" className="font-black text-[24px] leading-[120%] tracking-[-.015em] uppercase text-[#F5F5E6] text-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-green/70 rounded">Коллаборации</a>
-            <a href="#" className="font-black text-[24px] leading-[120%] tracking-[-.015em] uppercase text-[#F5F5E6] text-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-green/70 rounded">Контакты</a>
+          {/* Nav column (design: centered fixed width 228px) */}
+          <nav className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[228px] flex flex-col items-center gap-12">
+            <a href="#" className="font-black text-[28px] leading-[120%] tracking-[-.015em] uppercase text-[#F5F5E6] text-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-green/70 rounded">Каталог</a>
+            <a href="#" className="font-black text-[28px] leading-[120%] tracking-[-.015em] uppercase text-[#F5F5E6] text-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-green/70 rounded">История</a>
+            <a href="#" className="font-black text-[28px] leading-[120%] tracking-[-.015em] uppercase text-[#F5F5E6] text-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-green/70 rounded">Коллаборации</a>
+            <a href="#" className="font-black text-[28px] leading-[120%] tracking-[-.015em] uppercase text-[#F5F5E6] text-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-green/70 rounded">Контакты</a>
           </nav>
         </div>
       )}
