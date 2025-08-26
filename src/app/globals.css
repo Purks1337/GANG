@@ -2,11 +2,17 @@
 
 :root {
   --background: #ffffff;
-  --foreground: #171717;
+  /* Primary text color for light theme (brand white) */
+  --foreground: #F5F5E6;
   /* Glass panels should stay dark in both themes */
   --glass-tint: #000000;
   /* Main overlay opacity: 0 on light, overridden in dark */
   --overlay-opacity: 0;
+  /* Logo glow: visible on light theme, hidden on dark */
+  --logo-glow-opacity: 1;
+  /* Container paddings for mobile/tablet/desktop */
+  --container-px: clamp(16px, 4vw, 24px);
+  --container-py: 24px;
 }
 
 @theme inline {
@@ -32,6 +38,7 @@
   --foreground: #ededed;
   --glass-tint: #000000;
   --overlay-opacity: 0.5;
+  --logo-glow-opacity: 0;
 }
 
 body {
@@ -41,9 +48,26 @@ body {
   transition: background-color 300ms ease, color 300ms ease;
 }
 
-/* Make the center logo black on light theme and original (white) on dark */
+/* Logo is always white */
 .app-logo {
-  filter: invert(1);
   transition: filter 300ms ease;
 }
 :root.theme-dark .app-logo { filter: none; }
+
+/* Reduce heavy blur when user prefers reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .reduce-blur-when-motion {
+    filter: blur(40px) !important;
+  }
+}
+
+/* Safe-area aware utilities for mobile notches/home indicators */
+.safe-px {
+  padding-left: max(var(--container-px), env(safe-area-inset-left));
+  padding-right: max(var(--container-px), env(safe-area-inset-right));
+}
+
+.safe-py {
+  padding-top: max(var(--container-py), env(safe-area-inset-top));
+  padding-bottom: max(var(--container-py), env(safe-area-inset-bottom));
+}
