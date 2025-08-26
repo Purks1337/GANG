@@ -37,14 +37,24 @@ export default function MainPage() {
             transition: "opacity 300ms ease",
           }}
         />
+        {/* Mobile: fixed 124x124 */}
+        <Image
+          src="/gang-logo.svg"
+          alt="Gang Ground logo"
+          width={124}
+          height={124}
+          priority
+          className="relative z-10 app-logo pointer-events-none block sm:hidden w-[124px] h-[124px]"
+        />
+        {/* ≥ sm: original proportions and responsive widths */}
         <Image
           src="/gang-logo.svg"
           alt="Gang Ground logo"
           width={320}
           height={120}
           priority
-          sizes="(max-width: 640px) 124px, (max-width: 1024px) 280px, 320px"
-          className="relative z-10 app-logo pointer-events-none w-[124px] sm:w-[220px] md:w-[280px] lg:w-[320px] h-auto"
+          sizes="(max-width: 1024px) 280px, 320px"
+          className="relative z-10 app-logo pointer-events-none hidden sm:block w-[220px] md:w-[280px] lg:w-[320px] h-auto"
         />
       </div>
     </main>
