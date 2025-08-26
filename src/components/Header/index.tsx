@@ -109,32 +109,32 @@ export default function Header() {
   return (
     <header className="fixed top-0 left-0 right-0 z-20 p-0">
       <div className="relative sm:flex sm:justify-between sm:items-center sm:max-w-screen-xl sm:mx-auto sm:gap-4 sm:p-6">
-        {/* Theme Switcher (top-left on mobile) */}
+        {/* Theme Switcher (top-left on mobile, left edge on larger screens) */}
         <button
           type="button"
           aria-pressed={isNight}
           aria-label="Toggle theme"
           onClick={handleToggle}
-          className="group absolute left-2 top-4 sm:static flex items-center gap-2 sm:gap-[8px] px-3 sm:px-[16px] sm:py-[12px] h-10 sm:h-auto rounded-full border border-white/10 bg-glass-tint/60 sm:bg-glass-tint/40 backdrop-blur-[6px] sm:backdrop-blur-md pointer-events-auto transition-colors duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-green/70"
-          style={{ top: 'max(1rem, env(safe-area-inset-top))' }}
+          className="group absolute left-1 top-2 sm:absolute sm:left-6 lg:left-8 flex items-center gap-1 sm:gap-[8px] px-2 py-1 sm:px-[16px] sm:py-[12px] h-[30px] sm:h-auto rounded-full border border-white/10 bg-glass-tint/60 sm:bg-glass-tint/40 backdrop-blur-[6px] sm:backdrop-blur-md pointer-events-auto transition-colors duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-green/70"
+          style={{ top: 'max(8px, env(safe-area-inset-top))' }}
         >
-          <span className="inline-flex items-center justify-center w-5 h-5 sm:w-8 sm:h-8 rounded-full bg-brand-green text-black">
+          <span className="inline-flex items-center justify-center w-[18px] h-[18px] sm:w-7 sm:h-7 md:w-8 md:h-8 rounded-full bg-brand-green text-black">
             {isNight ? <MoonIcon /> : <SunIcon />}
           </span>
-          <span className="font-black text-base leading-[120%] tracking-[-.08em] uppercase text-foreground transition-colors duration-200 group-hover:text-brand-green group-hover:underline sm:text-2xl">
+          <span className="font-black text-[14px] leading-[120%] tracking-[-.08em] uppercase text-foreground transition-colors duration-200 group-hover:text-brand-green group-hover:underline sm:text-xl md:text-2xl">
             {label}
           </span>
         </button>
 
-        {/* Cart (top-right on mobile) */}
+        {/* Cart (top-right on mobile, right edge on larger screens) */}
         <button
           type="button"
           aria-label="Открыть корзину"
-          className="group absolute right-2 top-4 sm:static flex items-center gap-2 sm:gap-2 px-4 sm:px-[16px] sm:py-[12px] h-10 sm:h-auto rounded-full border border-white/10 bg-glass-tint/60 sm:bg-glass-tint/40 backdrop-blur-[6px] sm:backdrop-blur-md pointer-events-auto transition-colors duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-green/70"
-          style={{ top: 'max(1rem, env(safe-area-inset-top))' }}
+          className="group absolute right-1 top-2 sm:absolute sm:right-6 lg:right-8 flex items-center gap-1 sm:gap-2 px-2 py-1 sm:px-[16px] sm:py-[12px] h-[30px] sm:h-auto rounded-full border border-white/10 bg-glass-tint/60 sm:bg-glass-tint/40 backdrop-blur-[6px] sm:backdrop-blur-md pointer-events-auto transition-colors duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-green/70"
+          style={{ top: 'max(8px, env(safe-area-inset-top))' }}
         >
-          <span className="font-black text-base leading-[120%] tracking-[-.08em] uppercase text-foreground transition-colors duration-200 group-hover:text-brand-green group-hover:underline sm:text-2xl">КОРЗИНА</span>
-          <span className="inline-flex items-center justify-center w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-brand-green text-black text-base sm:text-[20px] font-black">0</span>
+          <span className="font-black text-[14px] leading-[120%] tracking-[-.08em] uppercase text-foreground transition-colors duration-200 group-hover:text-brand-green group-hover:underline sm:text-xl md:text-2xl">КОРЗИНА</span>
+          <span className="inline-flex items-center justify-center w-[18px] h-[18px] sm:w-5 sm:h-5 md:w-6 md:h-6 rounded-full bg-brand-green text-black text-[14px] sm:text-[18px] md:text-[20px] font-black">0</span>
         </button>
       </div>
     </header>
