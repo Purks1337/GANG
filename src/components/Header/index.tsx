@@ -115,13 +115,13 @@ export default function Header() {
           aria-pressed={isNight}
           aria-label="Toggle theme"
           onClick={handleToggle}
-          className="group absolute left-1 top-2 sm:static flex items-center gap-1 sm:gap-[8px] px-2 py-1 sm:px-[16px] sm:py-[12px] h-[30px] sm:h-auto rounded-full border border-white/10 bg-glass-tint/60 sm:bg-glass-tint/40 backdrop-blur-[6px] sm:backdrop-blur-md pointer-events-auto transition-colors duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-green/70"
-          style={{ top: 'max(8px, env(safe-area-inset-top))' }}
+          className="group absolute left-2 top-4 sm:static flex items-center gap-2 sm:gap-[8px] px-3 sm:px-[16px] sm:py-[12px] h-10 sm:h-auto rounded-full border border-white/10 bg-glass-tint/60 sm:bg-glass-tint/40 backdrop-blur-[6px] sm:backdrop-blur-md pointer-events-auto transition-colors duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-green/70"
+          style={{ top: 'max(1rem, env(safe-area-inset-top))' }}
         >
-          <span className="inline-flex items-center justify-center w-[18px] h-[18px] sm:w-8 sm:h-8 rounded-full bg-brand-green text-black">
+          <span className="inline-flex items-center justify-center w-5 h-5 sm:w-8 sm:h-8 rounded-full bg-brand-green text-black">
             {isNight ? <MoonIcon /> : <SunIcon />}
           </span>
-          <span className="font-black text-[14px] leading-[120%] tracking-[-.08em] uppercase text-foreground transition-colors duration-200 group-hover:text-brand-green group-hover:underline sm:text-2xl">
+          <span className="font-black text-base leading-[120%] tracking-[-.08em] uppercase text-foreground transition-colors duration-200 group-hover:text-brand-green group-hover:underline sm:text-2xl">
             {label}
           </span>
         </button>
@@ -130,11 +130,11 @@ export default function Header() {
         <button
           type="button"
           aria-label="Открыть корзину"
-          className="group absolute right-1 top-2 sm:static flex items-center gap-1 sm:gap-2 px-2 py-1 sm:px-[16px] sm:py-[12px] h-[30px] sm:h-auto rounded-full border border-white/10 bg-glass-tint/60 sm:bg-glass-tint/40 backdrop-blur-[6px] sm:backdrop-blur-md pointer-events-auto transition-colors duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-green/70"
-          style={{ top: 'max(8px, env(safe-area-inset-top))' }}
+          className="group absolute right-2 top-4 sm:static flex items-center gap-2 sm:gap-2 px-4 sm:px-[16px] sm:py-[12px] h-10 sm:h-auto rounded-full border border-white/10 bg-glass-tint/60 sm:bg-glass-tint/40 backdrop-blur-[6px] sm:backdrop-blur-md pointer-events-auto transition-colors duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-green/70"
+          style={{ top: 'max(1rem, env(safe-area-inset-top))' }}
         >
-          <span className="font-black text-[14px] leading-[120%] tracking-[-.08em] uppercase text-foreground transition-colors duration-200 group-hover:text-brand-green group-hover:underline sm:text-2xl">КОРЗИНА</span>
-          <span className="inline-flex items-center justify-center w-[18px] h-[18px] sm:w-6 sm:h-6 rounded-full bg-brand-green text-black text-[14px] sm:text-[20px] font-black">0</span>
+          <span className="font-black text-base leading-[120%] tracking-[-.08em] uppercase text-foreground transition-colors duration-200 group-hover:text-brand-green group-hover:underline sm:text-2xl">КОРЗИНА</span>
+          <span className="inline-flex items-center justify-center w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-brand-green text-black text-base sm:text-[20px] font-black">0</span>
         </button>
       </div>
     </header>
