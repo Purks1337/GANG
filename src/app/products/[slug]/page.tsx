@@ -6,14 +6,11 @@ interface ProductPageProps {
   };
 }
 
-export default async function ProductPage({ params }: ProductPageProps) {
-  const awaitedParams = await params;
-  return <ProductDetail productSlug={awaitedParams.slug} />;
+export default function ProductPage({ params }: ProductPageProps) {
+  return <ProductDetail productSlug={params.slug} />;
 }
 
-// Generate static params for the products
 export function generateStaticParams() {
-  // These would typically come from your CMS/API
   const products = [
     { slug: "basic-t-shirt" },
     { slug: "basic-gg-t-shirt" },
