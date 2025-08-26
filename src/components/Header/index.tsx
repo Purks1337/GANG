@@ -108,7 +108,7 @@ export default function Header() {
 
   return (
     <header className="fixed top-0 left-0 right-0 z-20 p-0">
-      <div className="relative sm:flex sm:justify-between sm:items-center sm:max-w-screen-xl sm:mx-auto sm:gap-4 sm:p-6">
+      <div className="relative sm:flex sm:justify-between sm:items-center sm:max-w-screen-xl sm:mx-auto sm:gap-4 sm:p-6 lg:max-w-none lg:mx-0 lg:w-full lg:px-6">
         {/* Theme Switcher (top-left on mobile) */}
         <button
           type="button"
