@@ -87,7 +87,7 @@ export default function Navigation() {
       <div className="sm:hidden fixed bottom-4 right-2 z-10 pointer-events-auto" style={{ bottom: 'max(1rem, env(safe-area-inset-bottom))' }}>
         <Link
           href="/catalog"
-          className="flex items-center gap-1 px-4 h-10 rounded-full border border-white/10 bg-black/70 backdrop-blur-[6px] font-black text-base leading-[120%] tracking-[-.08em] uppercase text-center transition-colors duration-200 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3acb00]/70"
+          className="flex items-center gap-1 px-4 h-10 rounded-full border border-white/10 bg-black/70 backdrop-blur-[6px] font-black text-base leading-[120%] tracking-[-.08em] uppercase text-center text-white transition-colors duration-200 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3acb00]/70"
         >
           каталог
         </Link>
@@ -145,7 +145,7 @@ export default function Navigation() {
                 className={`font-black text-[24px] leading-[120%] tracking-[-.015em] uppercase text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3acb00]/70 rounded transition-colors duration-200 ${
                   pathname === item.href
                     ? "text-[#3acb00]"
-                    : "text-[#e2e8e8]"
+                    : "text-white"
                 }`}
               >
                 {item.label}
