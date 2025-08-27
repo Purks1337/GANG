@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import ProductCard from "@/components/ProductCard";
+import { useTheme } from "@/contexts/ThemeContext";
 
 interface Product {
   id: string;
@@ -32,9 +33,11 @@ const products: Product[] = [
 
 export default function Catalog() {
   const router = useRouter();
-  
+  const { theme } = useTheme(); // Получаем текущую тему
+
   return (
     <div className="relative min-h-screen bg-background text-foreground overflow-hidden transition-colors duration-300">
+
       {/* Top decorative tag */}
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-[1458px] h-[480px] z-0 pointer-events-none">
         <Image

@@ -18,7 +18,7 @@ export default function ProductCard({ name, price, image, onClick }: ProductCard
       onClick={onClick}
     >
       {/* Product Image */}
-      <div className="relative w-full bg-white rounded-[16px] sm:rounded-[20px] lg:rounded-[24px] overflow-hidden shadow-sm
+      <div className="relative w-full bg-white rounded-[16px] sm:rounded-[20px] lg:rounded-[24px] overflow-hidden 
                       h-[300px] sm:h-[360px] lg:h-[439px]">
         <Image
           src={image}
@@ -35,7 +35,7 @@ export default function ProductCard({ name, price, image, onClick }: ProductCard
         <h3 className="font-extrabold tracking-[-0.33px] text-center transition-colors duration-200
                         text-[24px] sm:text-[28px] lg:text-[33px]
                         leading-[30px] sm:leading-[36px] lg:leading-[42.9px]
-                        text-white group-hover:text-[#3ACB00]">
+                        text-foreground group-hover:text-[#3ACB00]">
           {name}
         </h3>
         <p className="text-foreground font-bold text-center mt-1 transition-colors duration-200

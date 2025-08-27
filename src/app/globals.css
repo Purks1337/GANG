@@ -15,25 +15,6 @@
   --container-py: 24px;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --color-glass-tint: var(--glass-tint);
-  /* Custom brand tokens for Tailwind v4 */
-  --color-brand-green: #3ACB00;
-  --color-brand-light-gray: #E2E8E8;
-}
-
-/* System preference fallback when user has not chosen explicitly */
-@media (prefers-color-scheme: dark) {
-  :root {
-    /* Dark theme - exact Figma colors */
-    --background: #141414;
-    --foreground: #ffffff;
-  }
-}
-
-/* Explicit dark theme selected by user — overrides system preference */
 :root.theme-dark {
   /* Dark theme - exact Figma colors */
   --background: #141414;
@@ -41,6 +22,15 @@
   --glass-tint: #000000;
   --overlay-opacity: 0.5;
   --logo-glow-opacity: 0;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-glass-tint: var(--glass-tint);
+  /* Custom brand tokens for Tailwind v4 */
+  --color-brand-green: #3ACB00;
+  --color-brand-light-gray: #E2E8E8;
 }
 
 body {

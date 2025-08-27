@@ -1,2 +1,20 @@
-/** Tailwind CSS v4: config is optional. Keeping empty object to avoid legacy v3 settings. */
-module.exports = {};
+/** @type {import('tailwindcss').Config} */
+module.exports = {
+  darkMode: 'class',
+  content: [
+    "./src/**/*.{js,ts,jsx,tsx,mdx}",
+  ],
+  theme: {
+    extend: {
+      colors: {
+        background: "var(--background)",
+        foreground: "var(--foreground)",
+        "glass-tint": "var(--glass-tint)",
+        "brand-green": "var(--color-brand-green)",
+        "brand-light-gray": "var(--color-brand-light-gray)",
+      },
+      // You can extend other properties here if needed
+    },
+  },
+  plugins: [],
+};
