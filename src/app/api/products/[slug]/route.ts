@@ -57,9 +57,9 @@ const PRODUCT_BY_SLUG = /* GraphQL */ `
   }
 `;
 
-export async function GET(_: Request, { params }: { params: { slug: string } }) {
+export async function GET(_req: Request, { params }) {
   try {
-    const { slug } = params;
+    const { slug } = params as { slug: string };
     const data = await executeGraphQL<ProductBySlugResponse>({
       query: PRODUCT_BY_SLUG,
       variables: { slug },
