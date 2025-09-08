@@ -16,6 +16,30 @@ bun dev
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
+## WordPress (Backend) - Local via Docker
+
+Stack is defined in `docker-compose.yml` and includes MySQL, WordPress, and phpMyAdmin.
+
+Commands:
+
+```bash
+# Start containers
+docker compose up -d
+
+# Stop containers
+docker compose down
+```
+
+Services:
+- WordPress: http://localhost:8080
+- phpMyAdmin: http://localhost:8081
+
+Default MySQL credentials (override with env):
+- DB: wordpress
+- User: wp
+- Password: wp
+- Root password: root
+
 You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.

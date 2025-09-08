@@ -9,6 +9,17 @@ const formatPrice = (price: number) => {
   return price.toLocaleString('ru-RU') + ' ₽';
 };
 
+function parseRubles(priceStr: string): number {
+  if (!priceStr) return 0;
+  const cleaned = priceStr
+    .replace(/&nbsp;/g, ' ')
+    .replace(/[^0-9,\.]/g, '') // keep digits, comma, dot
+    .replace(/,/g, '.');
+  const value = parseFloat(cleaned);
+  if (isNaN(value)) return 0;
+  return Math.round(value); // convert to integer rubles
+}
+
 export default function Cart() {
   const router = useRouter();
   const { items, totalItems, totalPrice, updateQuantity, removeItem, clearCart } = useCart();
@@ -56,8 +67,9 @@ export default function Cart() {
         {/* Cart Items */}
         <div className="space-y-6 mb-8">
           {items.map((item) => {
-            const numericPrice = parseInt(item.price.replace(/[^\d]/g, ''));
-            const itemTotal = numericPrice * item.quantity;
+            const unitRubles = parseRubles(item.price);
+            const itemTotal = unitRubles * item.quantity;
+            const unitFormatted = formatPrice(unitRubles);
             
             return (
               <div 
@@ -82,7 +94,7 @@ export default function Cart() {
                     <p className="text-sm opacity-70 mb-2">Размер: {item.size.toUpperCase()}</p>
                   )}
                   <p className="text-lg font-bold text-brand-green mb-4">
-                    {item.price} × {item.quantity} = {formatPrice(itemTotal)}
+                    {unitFormatted} × {item.quantity} = {formatPrice(itemTotal)}
                   </p>
 
                   {/* Quantity Controls */}

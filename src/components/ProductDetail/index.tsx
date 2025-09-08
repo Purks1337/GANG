@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { useCart } from "@/contexts/CartContext";
@@ -17,34 +17,42 @@ interface IProduct {
   additionalInfo: string[];
 }
 
-const getProductData = (slug: string): IProduct => {
-  const products: Record<string, IProduct> = {
-    "basic-t-shirt": {
-      id: "1",
-      name: "basic t-shirt",
-      price: "4 900 ₽",
-      images: ["/items/item-01.jpg", "/items/item-01-2.jpg", "/items/item-01-3.jpg"],
-      thumbnails: ["/items/item-01.jpg", "/items/item-01-2.jpg", "/items/item-01-3.jpg"],
-      description: [
-        "ПЛОТНЫЙ ОРГАНИЧЕСКИЙ ХЛОПОК, 250 Г/М²",
-        "ОБЪЁМНЫЙ ПРИНТ ЛОГОТИПА", 
-        "СВОБОДНЫЙ КРОЙ (ОВЕРСАЙЗ)",
-        "СООТВЕТСТВУЕТ РАЗМЕРУ. РЕКОМЕНДУЕМ ВЫБИРАТЬ ВАШ ОБЫЧНЫЙ РАЗМЕР."
-      ],
-      sizes: ["xs", "s", "m", "l", "xl", "xxl"],
-      availableSizes: ["s", "l", "xl", "xxl"],
-      additionalInfo: [
-        "Каждое изделие прошло специальную обработку и окрашивание для достижения особой мягкости и эффекта выстиранной ткани. Ввиду особенностей продукта, небольшие потёртости и выцветание являются нормой.",
-        "РОСТ МО — 185 СМ, НА НЕМ ФУТБОЛКА РАЗМЕРА L.",
-        "РОСТ CHYNA — 168 СМ, НА НЕЙ ФУТБОЛКА РАЗМЕРА M.",
-        "ПОЖАЛУЙСТА, ОБРАТИТЕ ВНИМАНИЕ: ОТПРАВКА ДАННОГО ТОВАРА ЗАЙМЁТ ОТ 2 ДО 4 РАБОЧИХ ДНЕЙ.",
-        "МЕЖДУНАРОДНЫЕ ЗАКАЗЫ: НАЛОГИ И ТАМОЖЕННЫЕ ПОШЛИНЫ ОПЛАЧИВАЮТСЯ ПОКУПАТЕЛЕМ ПРИ ПОЛУЧЕНИИ ЗАКАЗА."
-      ]
-    }
-  };
-  
-  return products[slug] || products["basic-t-shirt"];
-};
+function parseRublesNumber(raw?: string | null): number | null {
+  if (!raw) return null;
+  const cleaned = String(raw).replace(/&nbsp;/g, ' ').replace(/[^0-9,\.]/g, '').replace(/,/g, '.');
+  const val = parseFloat(cleaned);
+  if (isNaN(val)) return null;
+  return Math.round(val);
+}
+
+function formatPrice(raw?: string | null): string {
+  const num = parseRublesNumber(raw);
+  if (num === null) return (raw ?? "");
+  return new Intl.NumberFormat("ru-RU").format(num) + " ₽";
+}
+
+function extractNumeric(raw?: string | null): number | null {
+  return parseRublesNumber(raw);
+}
+
+function sanitizeHtmlToLines(html?: string | null): string[] {
+  if (!html) return [];
+  const text = html
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/<li[^>]*>/gi, "• ")
+    .replace(/<[^>]+>/g, "")
+    .replace(/&nbsp;/g, " ")
+    .trim();
+  const lines = text.split(/\n|\.\s+/).map(s => s.trim()).filter(Boolean);
+  return lines;
+}
+
+async function fetchProduct(slug: string) {
+  const res = await fetch(`/api/products/${slug}`, { cache: "no-store" });
+  const json = await res.json();
+  if (!json.ok) throw new Error(json.error || "Failed to load product");
+  return json.product as any;
+}
 
 interface ProductDetailProps {
   productSlug: string;
@@ -53,17 +61,93 @@ interface ProductDetailProps {
 export default function ProductDetail({ productSlug }: ProductDetailProps) {
   const router = useRouter();
   const { addItem } = useCart();
-  const product = getProductData(productSlug);
-  
-  const [selectedImage, setSelectedImage] = useState(0);
+
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [rawProduct, setRawProduct] = useState<any | null>(null);
+
+  const product: IProduct | null = useMemo(() => {
+    if (!rawProduct) return null;
+
+    const name: string = rawProduct.name ?? "";
+
+    const mainImage: string | undefined = rawProduct.image?.sourceUrl ?? undefined;
+    const gallery: string[] = (rawProduct.galleryImages?.nodes || []).map((n: any) => n?.sourceUrl).filter(Boolean);
+    const images = [mainImage, ...gallery].filter(Boolean) as string[];
+
+    const descriptionLines = sanitizeHtmlToLines(rawProduct.description);
+
+    const variationNodes: any[] = rawProduct.variations?.nodes || [];
+    const sizeValues = Array.from(
+      new Set(
+        variationNodes
+          .flatMap(v => (v.attributes?.nodes || []).map((a: any) => a?.value))
+          .filter(Boolean)
+          .map((v: string) => v.toLowerCase())
+      )
+    );
+
+    const available = new Set<string>(
+      variationNodes
+        .filter(v => (v.stockStatus || "").toUpperCase() === "IN_STOCK" || (v.stockQuantity ?? 0) > 0)
+        .flatMap(v => (v.attributes?.nodes || []).map((a: any) => (a?.value || "").toLowerCase()))
+    );
+
+    const sizes = sizeValues.length > 0 ? sizeValues : ["s", "m", "l", "xl"];
+    const availableSizes = sizes.filter(s => available.has(s));
+
+    const parentPriceStr: string | null = rawProduct.price ?? null;
+    const isRange = !!parentPriceStr && /-|&ndash;|–/.test(parentPriceStr);
+
+    const variationNumericPrices: number[] = variationNodes
+      .map(v => extractNumeric(v.price))
+      .filter((n): n is number => typeof n === 'number');
+
+    const minVariation = variationNumericPrices.length > 0 ? Math.min(...variationNumericPrices) : null;
+
+    let finalPrice = "";
+    if (isRange && minVariation !== null) {
+      finalPrice = new Intl.NumberFormat("ru-RU").format(minVariation) + " ₽";
+    } else {
+      finalPrice = formatPrice(parentPriceStr);
+    }
+
+    const thumbnails = images;
+
+    const result: IProduct = {
+      id: rawProduct.id,
+      name,
+      price: finalPrice,
+      images: images.length ? images : ["/items/item-01.jpg"],
+      thumbnails: thumbnails.length ? thumbnails : ["/items/item-01.jpg"],
+      description: descriptionLines,
+      sizes,
+      availableSizes: availableSizes.length ? availableSizes : sizes,
+      additionalInfo: [],
+    };
+
+    return result;
+  }, [rawProduct]);
+
+  const [hoverIndex, setHoverIndex] = useState(0);
   const [selectedSize, setSelectedSize] = useState<string>("");
-  
+
+  useEffect(() => {
+    setLoading(true);
+    setError(null);
+    fetchProduct(productSlug)
+      .then(setRawProduct)
+      .catch((e) => setError(e.message))
+      .finally(() => setLoading(false));
+  }, [productSlug]);
+
   const handleAddToCart = () => {
     if (!selectedSize) {
       alert("Пожалуйста, выберите размер");
       return;
     }
-    
+    if (!product) return;
+
     addItem({
       id: product.id,
       name: product.name,
@@ -71,147 +155,152 @@ export default function ProductDetail({ productSlug }: ProductDetailProps) {
       image: product.images[0],
       size: selectedSize
     });
-    
+
     const confirmGoToCart = confirm("Товар добавлен в корзину! Перейти к оформлению?");
     if (confirmGoToCart) {
       router.push('/cart');
     }
   };
 
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background text-foreground transition-colors duration-300 flex items-center justify-center">
+        Загрузка товара…
+      </div>
+    );
+  }
+
+  if (error || !product) {
+    return (
+      <div className="min-h-screen bg-background text-foreground transition-colors duration-300 flex items-center justify-center">
+        Не удалось загрузить товар
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-background text-foreground transition-colors duration-300 pt-16 sm:pt-20 lg:pt-24 pb-16 lg:pb-32">
-      <div className="max-w-[1555px] mx-auto px-4 sm:px-6">
-        <div className="flex flex-col lg:flex-row gap-6 lg:gap-8">
-          
-          <div className="flex-1 max-w-[793px]">
-            <div className="relative w-full bg-white overflow-hidden mb-4
-                            h-[400px] sm:h-[500px] md:h-[600px] lg:h-[751px]
-                            rounded-[16px] sm:rounded-[20px] lg:rounded-[24px]">
-              <Image
-                src={product.images[selectedImage]}
-                alt={product.name}
-                fill
-                className="object-cover"
-                sizes="(max-width: 640px) 100vw, (max-width: 1024px) 90vw, 793px"
+    <div className="relative min-h-screen bg-background text-foreground transition-colors duration-300 overflow-hidden">
+      {/* Top decorative tag */}
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-[1458px] h-[480px] z-0 pointer-events-none">
+        <Image
+          src="/tag-top.svg"
+          alt=""
+          fill
+          className="object-contain"
+          style={{ transform: 'translateY(-188px)' }}
+        />
+      </div>
+
+      <div className="relative z-10 max-w-[1280px] mx-auto px-4 sm:px-6 py-12 lg:py-38">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
+          {/* Left: Image area - fills height, hover changes image */}
+          <div className="relative w-full h-[70vh] min-h-[520px] max-h-[780px] bg-white rounded-[24px] overflow-hidden">
+            <Image
+              src={product.images[hoverIndex]}
+              alt={product.name}
+              fill
+              className="object-cover"
+              sizes="(max-width: 1024px) 100vw, 640px"
+            />
+            {product.images.map((_, idx) => (
+              <div
+                key={idx}
+                onMouseEnter={() => setHoverIndex(idx)}
+                className="absolute inset-y-0"
+                style={{ left: `${(idx * 100) / product.images.length}%`, width: `${100 / product.images.length}%` }}
               />
-            </div>
-            
-            <div className="flex gap-2 sm:gap-3 lg:gap-4 overflow-x-auto pb-2">
-              {product.thumbnails.map((thumb: string, index: number) => (
-                <button
-                  key={index}
-                  onClick={() => setSelectedImage(index)}
-                  className={`relative bg-white overflow-hidden transition-all duration-200 flex-shrink-0
-                              w-[100px] h-[100px] sm:w-[150px] sm:h-[150px] lg:w-[232px] lg:h-[224px]
-                              rounded-[12px] sm:rounded-[16px] lg:rounded-[24px] ${
-                    selectedImage === index 
-                      ? 'ring-2 ring-brand-green scale-105' 
-                      : 'hover:scale-102'
-                  }`}
-                >
-                  <Image
-                    src={thumb}
-                    alt={`${product.name} thumbnail ${index + 1}`}
-                    fill
-                    className="object-cover"
-                    sizes="(max-width: 640px) 100px, (max-width: 1024px) 150px, 232px"
-                  />
-                </button>
-              ))}
-            </div>
+            ))}
           </div>
 
-          <div className="flex-1 max-w-[714px]">
-            
-            <div className="mb-6 sm:mb-8">
-              <h1 className="font-extrabold tracking-[-0.33px] mb-3 sm:mb-4
-                             text-[28px] sm:text-[30px] lg:text-[33px]
-                             leading-[36px] sm:leading-[38px] lg:leading-[42.9px]">
-                {product.name}
-              </h1>
-              <p className="font-semibold
-                           text-[24px] sm:text-[26px] lg:text-[28px]
-                           leading-[30px] sm:leading-[32px] lg:leading-[36.4px]">
-                {product.price}
-              </p>
-            </div>
+          {/* Right: Content */}
+          <div className="flex flex-col justify-center h-full">
+            <div className="space-y-6">
+              <div>
+                <h1 className="font-extrabold tracking-[-0.33px] mb-2 text-[28px] sm:text-[32px] lg:text-[36px] leading-tight">
+                  {product.name}
+                </h1>
+                <p className="font-bold text-[24px] sm:text-[26px] lg:text-[28px] leading-tight text-brand-green">
+                  {product.price}
+                </p>
+              </div>
 
-            <div className="mb-6 sm:mb-8">
               <ul className="space-y-3 sm:space-y-4">
                 {product.description.map((feature: string, index: number) => (
-                  <li key={index} className="flex items-start gap-3">
-                    <span className="text-brand-green text-lg sm:text-xl mt-0.5">•</span>
-                    <span className="text-[14px] sm:text-[15px] lg:text-[16px] 
-                                   leading-[17px] sm:leading-[18px] lg:leading-[19.2px]">
+                  <li key={index} className="flex items-center gap-3">
+                    <span className="text-brand-green text-lg sm:text-xl">•</span>
+                    <span className="text-[14px] sm:text-[15px] lg:text-[16px] leading-relaxed">
                       {feature}
                     </span>
                   </li>
                 ))}
               </ul>
-            </div>
 
-            <div className="mb-6 sm:mb-8">
-              <h3 className="font-semibold mb-4 sm:mb-6
-                             text-[24px] sm:text-[26px] lg:text-[28px]
-                             leading-[30px] sm:leading-[32px] lg:leading-[36.4px]">
-                Размер
-              </h3>
-              <div className="flex gap-3 sm:gap-4 flex-wrap">
-                {product.sizes.map((size: string) => {
-                  const isAvailable = product.availableSizes.includes(size);
-                  const isSelected = selectedSize === size;
-                  
-                  return (
-                    <button
-                      key={size}
-                      onClick={() => isAvailable && setSelectedSize(size)}
-                      disabled={!isAvailable}
-                      className={`rounded-full font-semibold transition-all duration-200
-                                  w-11 h-11 sm:w-12 sm:h-12 lg:w-[49px] lg:h-[49px]
-                                  text-[17px] sm:text-[18px] lg:text-[19px]
-                                  leading-[22px] sm:leading-[23px] lg:leading-[24.7px] ${
-                        !isAvailable
-                          ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                          : isSelected
-                          ? 'bg-brand-green text-black scale-110'
-                          : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                      }`}
-                    >
-                      {size}
-                    </button>
-                  );
-                })}
+              <div>
+                <h3 className="font-semibold mb-4 text-[22px] sm:text-[24px] lg:text-[26px] leading-tight">
+                  Размер
+                </h3>
+                <div className="flex gap-3 sm:gap-4 flex-wrap">
+                  {product.sizes.map((size: string) => {
+                    const isAvailable = product.availableSizes.includes(size);
+                    const isSelected = selectedSize === size;
+                    return (
+                      <button
+                        key={size}
+                        onClick={() => isAvailable && setSelectedSize(size)}
+                        disabled={!isAvailable}
+                        className={`rounded-full font-semibold transition-all duration-200
+                                    w-11 h-11 sm:w-12 sm:h-12 lg:w-[49px] lg:h-[49px]
+                                    text-[17px] sm:text-[18px] lg:text-[19px]
+                                    ${
+                          !isAvailable
+                            ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                            : isSelected
+                            ? 'bg-brand-green text-black scale-110'
+                            : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                        }`}
+                      >
+                        {size}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
-            </div>
 
-            <div className="mb-6 sm:mb-8">
-              <div className="space-y-3 sm:space-y-4">
+              <div className="space-y-4">
                 {product.additionalInfo.map((info: string, index: number) => (
-                  <p key={index} className="opacity-80
-                                           text-[14px] sm:text-[15px] lg:text-[16px]
-                                           leading-[17px] sm:leading-[18px] lg:leading-[19.2px]">
+                  <p key={index} className="opacity-80 text-[14px] sm:text-[15px] lg:text-[16px] leading-relaxed">
                     {info}
                   </p>
                 ))}
               </div>
-            </div>
 
-            <button
-              onClick={handleAddToCart}
-              className="rounded-full bg-brand-green text-black font-black uppercase 
-                         hover:bg-brand-green/90 transition-colors duration-200 
-                         disabled:opacity-50 disabled:cursor-not-allowed
-                         w-full sm:w-full lg:w-[311px]
-                         h-[48px] sm:h-[50px] lg:h-[53px]
-                         text-[20px] sm:text-[22px] lg:text-[24px]
-                         leading-[24px] sm:leading-[26px] lg:leading-[28.8px]
-                         tracking-[-1.6px] sm:tracking-[-1.76px] lg:tracking-[-1.92px]"
-              disabled={!selectedSize}
-            >
-              добавить в корзину
-            </button>
+              <div className="pt-2">
+                <button
+                  onClick={handleAddToCart}
+                  className="rounded-full bg-brand-green text-black font-black uppercase 
+                             hover:bg-brand-green/90 transition-colors duration-200 
+                             disabled:opacity-50 disabled:cursor-not-allowed
+                             w-full lg:w-[311px]
+                             h-[53px]
+                             text-[20px] sm:text-[22px] lg:text-[24px]"
+                  disabled={!selectedSize}
+                >
+                  добавить в корзину
+                </button>
+              </div>
+            </div>
           </div>
         </div>
+      </div>
+
+      {/* Bottom decorative tag */}
+      <div className="absolute left-1/2 -translate-x-1/2 w-full max-w-[1458px] h-[480px] z-0 pointer-events-none" style={{ bottom: '-200px' }}>
+        <Image
+          src="/tag-bot.svg"
+          alt=""
+          fill
+          className="object-contain"
+        />
       </div>
     </div>
   );
