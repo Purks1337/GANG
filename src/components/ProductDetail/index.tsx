@@ -191,7 +191,7 @@ export default function ProductDetail({ productSlug }: ProductDetailProps) {
         />
       </div>
 
-      <div className="relative z-10 max-w-[1280px] mx-auto px-4 sm:px-6 py-12 lg:py-16">
+      <div className="relative z-10 max-w-[1280px] mx-auto px-4 sm:px-6 py-12 lg:py-38">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
           {/* Left: Image area - fills height, hover changes image */}
           <div className="relative w-full h-[70vh] min-h-[520px] max-h-[780px] bg-white rounded-[24px] overflow-hidden">
