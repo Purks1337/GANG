@@ -3,7 +3,6 @@
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import ProductCard from "@/components/ProductCard";
-import { useTheme } from "@/contexts/ThemeContext";
 import { useEffect, useState } from "react";
 
 interface Product {
@@ -40,12 +39,12 @@ async function fetchProducts(): Promise<Product[]> {
     const res = await fetch("/api/products", { cache: "no-store" });
     const json = await res.json();
     if (!json.ok) throw new Error(json.error || "Failed to load products");
-    const items = (json.products as any[]).map((p) => ({
+    const items = (json.products as Product[]).map((p) => ({
       id: p.id,
       name: p.name,
       slug: p.slug,
-      price: formatPriceDisplay(p.price),
-      image: p.image || "/items/item-01.jpg",
+      price: formatPriceDisplay((p as any).price as string),
+      image: (p as any).image || "/items/item-01.jpg",
     }));
     return items;
   } catch (e) {
@@ -56,7 +55,6 @@ async function fetchProducts(): Promise<Product[]> {
 
 export default function Catalog() {
   const router = useRouter();
-  const { theme } = useTheme(); // Получаем текущую тему
   const [items, setItems] = useState<Product[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
 

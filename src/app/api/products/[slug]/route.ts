@@ -3,6 +3,28 @@ import { executeGraphQL } from "@/lib/graphql";
 
 type Params = { params: { slug: string } };
 
+interface AttributeNode { name?: string | null; value?: string | null }
+interface VariationNode {
+  id: string;
+  name?: string | null;
+  stockStatus?: string | null;
+  stockQuantity?: number | null;
+  attributes?: { nodes: AttributeNode[] } | null;
+  price?: string | null;
+}
+interface MediaNode { sourceUrl?: string | null }
+interface ProductBySlugNode {
+  id: string;
+  slug: string;
+  name: string;
+  price?: string | null;
+  variations?: { nodes: VariationNode[] } | null;
+  galleryImages?: { nodes: MediaNode[] } | null;
+  image?: MediaNode | null;
+  description?: string | null;
+}
+interface ProductBySlugResponse { product: ProductBySlugNode | null }
+
 const PRODUCT_BY_SLUG = /* GraphQL */ `
   query ProductBySlug($slug: ID!) {
     product(id: $slug, idType: SLUG) {
@@ -40,7 +62,7 @@ const PRODUCT_BY_SLUG = /* GraphQL */ `
 export async function GET(_: Request, { params }: Params) {
   try {
     const { slug } = params;
-    const data = await executeGraphQL<{ product: any }>({
+    const data = await executeGraphQL<ProductBySlugResponse>({
       query: PRODUCT_BY_SLUG,
       variables: { slug },
     });
