@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { useCart } from "@/contexts/CartContext";
@@ -17,34 +17,32 @@ interface IProduct {
   additionalInfo: string[];
 }
 
-const getProductData = (slug: string): IProduct => {
-  const products: Record<string, IProduct> = {
-    "basic-t-shirt": {
-      id: "1",
-      name: "basic t-shirt",
-      price: "4 900 ₽",
-      images: ["/items/item-01.jpg", "/items/item-01-2.jpg", "/items/item-01-3.jpg"],
-      thumbnails: ["/items/item-01.jpg", "/items/item-01-2.jpg", "/items/item-01-3.jpg"],
-      description: [
-        "ПЛОТНЫЙ ОРГАНИЧЕСКИЙ ХЛОПОК, 250 Г/М²",
-        "ОБЪЁМНЫЙ ПРИНТ ЛОГОТИПА", 
-        "СВОБОДНЫЙ КРОЙ (ОВЕРСАЙЗ)",
-        "СООТВЕТСТВУЕТ РАЗМЕРУ. РЕКОМЕНДУЕМ ВЫБИРАТЬ ВАШ ОБЫЧНЫЙ РАЗМЕР."
-      ],
-      sizes: ["xs", "s", "m", "l", "xl", "xxl"],
-      availableSizes: ["s", "l", "xl", "xxl"],
-      additionalInfo: [
-        "Каждое изделие прошло специальную обработку и окрашивание для достижения особой мягкости и эффекта выстиранной ткани. Ввиду особенностей продукта, небольшие потёртости и выцветание являются нормой.",
-        "РОСТ МО — 185 СМ, НА НЕМ ФУТБОЛКА РАЗМЕРА L.",
-        "РОСТ CHYNA — 168 СМ, НА НЕЙ ФУТБОЛКА РАЗМЕРА M.",
-        "ПОЖАЛУЙСТА, ОБРАТИТЕ ВНИМАНИЕ: ОТПРАВКА ДАННОГО ТОВАРА ЗАЙМЁТ ОТ 2 ДО 4 РАБОЧИХ ДНЕЙ.",
-        "МЕЖДУНАРОДНЫЕ ЗАКАЗЫ: НАЛОГИ И ТАМОЖЕННЫЕ ПОШЛИНЫ ОПЛАЧИВАЮТСЯ ПОКУПАТЕЛЕМ ПРИ ПОЛУЧЕНИИ ЗАКАЗА."
-      ]
-    }
-  };
-  
-  return products[slug] || products["basic-t-shirt"];
-};
+function formatPrice(raw?: string | null): string {
+  if (!raw) return "";
+  const digits = String(raw).replace(/[^0-9]/g, "");
+  if (!digits) return String(raw);
+  const num = parseInt(digits, 10);
+  return new Intl.NumberFormat("ru-RU").format(num) + " ₽";
+}
+
+function sanitizeHtmlToLines(html?: string | null): string[] {
+  if (!html) return [];
+  const text = html
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/<li[^>]*>/gi, "• ")
+    .replace(/<[^>]+>/g, "")
+    .replace(/&nbsp;/g, " ")
+    .trim();
+  const lines = text.split(/\n|\.\s+/).map(s => s.trim()).filter(Boolean);
+  return lines;
+}
+
+async function fetchProduct(slug: string) {
+  const res = await fetch(`/api/products/${slug}`, { cache: "no-store" });
+  const json = await res.json();
+  if (!json.ok) throw new Error(json.error || "Failed to load product");
+  return json.product as any;
+}
 
 interface ProductDetailProps {
   productSlug: string;
@@ -53,17 +51,85 @@ interface ProductDetailProps {
 export default function ProductDetail({ productSlug }: ProductDetailProps) {
   const router = useRouter();
   const { addItem } = useCart();
-  const product = getProductData(productSlug);
-  
+
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [rawProduct, setRawProduct] = useState<any | null>(null);
+
+  const product: IProduct | null = useMemo(() => {
+    if (!rawProduct) return null;
+
+    const name: string = rawProduct.name ?? "";
+
+    const mainImage: string | undefined = rawProduct.image?.sourceUrl ?? undefined;
+    const gallery: string[] = (rawProduct.galleryImages?.nodes || []).map((n: any) => n?.sourceUrl).filter(Boolean);
+    const images = [mainImage, ...gallery].filter(Boolean) as string[];
+
+    const descriptionLines = sanitizeHtmlToLines(rawProduct.description);
+
+    // Handle variations for sizes/availability
+    const variationNodes: any[] = rawProduct.variations?.nodes || [];
+    const sizeValues = Array.from(
+      new Set(
+        variationNodes
+          .flatMap(v => (v.attributes?.nodes || []).map((a: any) => a?.value))
+          .filter(Boolean)
+          .map((v: string) => v.toLowerCase())
+      )
+    );
+
+    const available = new Set<string>(
+      variationNodes
+        .filter(v => (v.stockStatus || "").toUpperCase() === "IN_STOCK" || (v.stockQuantity ?? 0) > 0)
+        .flatMap(v => (v.attributes?.nodes || []).map((a: any) => (a?.value || "").toLowerCase()))
+    );
+
+    const sizes = sizeValues.length > 0 ? sizeValues : ["s", "m", "l", "xl"];
+    const availableSizes = sizes.filter(s => available.has(s));
+
+    // Price: prefer parent price; fallback to min variation price
+    const parentPrice = formatPrice(rawProduct.price);
+    const variationPrices = variationNodes
+      .map(v => formatPrice(v.price))
+      .filter(Boolean);
+    const price = parentPrice || variationPrices[0] || "";
+
+    const thumbnails = images;
+
+    const result: IProduct = {
+      id: rawProduct.id,
+      name,
+      price,
+      images: images.length ? images : ["/items/item-01.jpg"],
+      thumbnails: thumbnails.length ? thumbnails : ["/items/item-01.jpg"],
+      description: descriptionLines,
+      sizes,
+      availableSizes: availableSizes.length ? availableSizes : sizes,
+      additionalInfo: [],
+    };
+
+    return result;
+  }, [rawProduct]);
+
   const [selectedImage, setSelectedImage] = useState(0);
   const [selectedSize, setSelectedSize] = useState<string>("");
-  
+
+  useEffect(() => {
+    setLoading(true);
+    setError(null);
+    fetchProduct(productSlug)
+      .then(setRawProduct)
+      .catch((e) => setError(e.message))
+      .finally(() => setLoading(false));
+  }, [productSlug]);
+
   const handleAddToCart = () => {
     if (!selectedSize) {
       alert("Пожалуйста, выберите размер");
       return;
     }
-    
+    if (!product) return;
+
     addItem({
       id: product.id,
       name: product.name,
@@ -71,18 +137,33 @@ export default function ProductDetail({ productSlug }: ProductDetailProps) {
       image: product.images[0],
       size: selectedSize
     });
-    
+
     const confirmGoToCart = confirm("Товар добавлен в корзину! Перейти к оформлению?");
     if (confirmGoToCart) {
       router.push('/cart');
     }
   };
 
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background text-foreground transition-colors duration-300 pt-16 sm:pt-20 lg:pt-24 pb-16 lg:pb-32 flex items-center justify-center">
+        Загрузка товара…
+      </div>
+    );
+  }
+
+  if (error || !product) {
+    return (
+      <div className="min-h-screen bg-background text-foreground transition-colors duration-300 pt-16 sm:pt-20 lg:pt-24 pb-16 lg:pb-32 flex items-center justify-center">
+        Не удалось загрузить товар
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-background text-foreground transition-colors duration-300 pt-16 sm:pt-20 lg:pt-24 pb-16 lg:pb-32">
       <div className="max-w-[1555px] mx-auto px-4 sm:px-6">
         <div className="flex flex-col lg:flex-row gap-6 lg:gap-8">
-          
           <div className="flex-1 max-w-[793px]">
             <div className="relative w-full bg-white overflow-hidden mb-4
                             h-[400px] sm:h-[500px] md:h-[600px] lg:h-[751px]
@@ -95,7 +176,6 @@ export default function ProductDetail({ productSlug }: ProductDetailProps) {
                 sizes="(max-width: 640px) 100vw, (max-width: 1024px) 90vw, 793px"
               />
             </div>
-            
             <div className="flex gap-2 sm:gap-3 lg:gap-4 overflow-x-auto pb-2">
               {product.thumbnails.map((thumb: string, index: number) => (
                 <button
@@ -122,7 +202,6 @@ export default function ProductDetail({ productSlug }: ProductDetailProps) {
           </div>
 
           <div className="flex-1 max-w-[714px]">
-            
             <div className="mb-6 sm:mb-8">
               <h1 className="font-extrabold tracking-[-0.33px] mb-3 sm:mb-4
                              text-[28px] sm:text-[30px] lg:text-[33px]
@@ -160,7 +239,6 @@ export default function ProductDetail({ productSlug }: ProductDetailProps) {
                 {product.sizes.map((size: string) => {
                   const isAvailable = product.availableSizes.includes(size);
                   const isSelected = selectedSize === size;
-                  
                   return (
                     <button
                       key={size}

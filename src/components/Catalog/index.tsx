@@ -4,6 +4,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import ProductCard from "@/components/ProductCard";
 import { useTheme } from "@/contexts/ThemeContext";
+import { useEffect, useState } from "react";
 
 interface Product {
   id: string;
@@ -13,27 +14,49 @@ interface Product {
   slug: string;
 }
 
-const products: Product[] = [
-  { id: "1", name: "basic t-shirt", price: "4 999 ₽", image: "/items/item-01.jpg", slug: "basic-t-shirt" },
-  { id: "2", name: "basic GG t-shirt", price: "4 999 ₽", image: "/items/item-02.jpg", slug: "basic-gg-t-shirt" },
-  { id: "3", name: "part 2 t-shirt", price: "4 999 ₽", image: "/items/item-03.jpg", slug: "part-2-t-shirt" },
-  { id: "4", name: "bat gang t-shirt", price: "4 999 ₽", image: "/items/item-04.jpg", slug: "bat-gang-t-shirt" },
-  { id: "5", name: "scream t-shirt", price: "4 999 ₽", image: "/items/item-05.jpg", slug: "scream-t-shirt" },
-  { id: "6", name: "gg t-shirt", price: "4 999 ₽", image: "/items/item-06.jpg", slug: "gg-t-shirt" },
-  { id: "7", name: "scream t-shirt", price: "4 999 ₽", image: "/items/item-07.jpg", slug: "scream-t-shirt-2" },
-  { id: "8", name: "basic gang t-shirt", price: "4 999 ₽", image: "/items/item-08.jpg", slug: "basic-gang-t-shirt" },
-  { id: "9", name: "gang t-shirt", price: "4 999 ₽", image: "/items/item-09.jpg", slug: "gang-t-shirt" },
-  { id: "10", name: "bat t-shirt", price: "4 999 ₽", image: "/items/item-10.jpg", slug: "bat-t-shirt" },
-  { id: "11", name: "gang t-shirt", price: "4 999 ₽", image: "/items/item-11.jpg", slug: "gang-t-shirt-2" },
-  { id: "12", name: "gang t-shirt", price: "4 999 ₽", image: "/items/item-12.jpg", slug: "gang-t-shirt-3" },
-  { id: "13", name: "bat t-shirt", price: "4 999 ₽", image: "/items/item-13.jpg", slug: "bat-t-shirt-2" },
-  { id: "14", name: "gang t-shirt", price: "4 999 ₽", image: "/items/item-14.jpg", slug: "gang-t-shirt-4" },
-  { id: "15", name: "gang t-shirt", price: "4 999 ₽", image: "/items/item-15.jpg", slug: "gang-t-shirt-5" },
-];
+function formatPriceDisplay(raw?: string): string {
+  if (!raw) return "";
+  const cleaned = raw.replace(/&nbsp;/g, " ").replace(/\s+₽/g, "").trim();
+  const hasRange = cleaned.includes("-");
+  const part = hasRange ? cleaned.split("-")[0] : cleaned;
+  const digits = part.replace(/[^0-9]/g, "");
+  if (!digits) return raw;
+  const value = parseInt(digits, 10);
+  const formatted = new Intl.NumberFormat("ru-RU").format(value) + " ₽";
+  return hasRange ? `от ${formatted}` : formatted;
+}
+
+async function fetchProducts(): Promise<Product[]> {
+  try {
+    const res = await fetch("/api/products", { cache: "no-store" });
+    const json = await res.json();
+    if (!json.ok) throw new Error(json.error || "Failed to load products");
+    const items = (json.products as any[]).map((p) => ({
+      id: p.id,
+      name: p.name,
+      slug: p.slug,
+      price: formatPriceDisplay(p.price),
+      image: p.image || "/items/item-01.jpg",
+    }));
+    return items;
+  } catch (e) {
+    console.error(e);
+    return [];
+  }
+}
 
 export default function Catalog() {
   const router = useRouter();
   const { theme } = useTheme(); // Получаем текущую тему
+  const [items, setItems] = useState<Product[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+
+  useEffect(() => {
+    fetchProducts().then((data) => {
+      setItems(data);
+      setLoading(false);
+    });
+  }, []);
 
   return (
     <div className="relative min-h-screen bg-background text-foreground overflow-hidden transition-colors duration-300">
@@ -60,8 +83,7 @@ export default function Catalog() {
                             gap-x-4 sm:gap-x-6 xl:gap-x-[20px] 
                             gap-y-8 sm:gap-y-12 xl:gap-y-[64px] 
                             justify-items-center">
-              
-              {products.map((product) => (
+              {(loading ? [] : items).map((product) => (
                 <ProductCard
                   key={product.id}
                   name={product.name}
@@ -73,6 +95,9 @@ export default function Catalog() {
                   }}
                 />
               ))}
+              {(!loading && items.length === 0) && (
+                <div className="col-span-full text-center opacity-70">Товары не найдены</div>
+              )}
             </div>
           </div>
         </main>

@@ -6,7 +6,10 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "wp:up": "docker compose up -d",
+    "wp:down": "docker compose down",
+    "wp:logs": "docker compose logs -f"
   },
   "dependencies": {
     "next": "15.5.0",
