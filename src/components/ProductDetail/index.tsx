@@ -102,8 +102,8 @@ export default function ProductDetail({ productSlug }: ProductDetailProps) {
       new Set(
         variationNodes
           .flatMap(v => (v.attributes?.nodes || []).map((a: AttributeNode) => a?.value))
-          .filter(Boolean)
-          .map((v: string | null) => (v || '').toLowerCase())
+          .filter((val): val is string => typeof val === 'string' && val.length > 0)
+          .map(v => v.toLowerCase())
       )
     );
 
