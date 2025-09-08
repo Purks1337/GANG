@@ -13,13 +13,20 @@ interface Product {
   slug: string;
 }
 
+interface ApiProductItem {
+  id: string;
+  name: string;
+  slug: string;
+  price?: string;
+  image?: string;
+}
+
 function parseRublesNumber(raw?: string): number | null {
   if (!raw) return null;
   const cleaned = raw
     .replace(/&nbsp;/g, " ")
     .replace(/[^0-9,\.\-–—]/g, "") // keep digits, comma, dot, dashes
     .replace(/,/g, ".");
-  // If it's a range like "2990.00-4903.00" take first part
   const first = cleaned.split(/[-–—]/)[0];
   const value = parseFloat(first);
   if (isNaN(value)) return null;
@@ -37,14 +44,14 @@ function formatPriceDisplay(raw?: string): string {
 async function fetchProducts(): Promise<Product[]> {
   try {
     const res = await fetch("/api/products", { cache: "no-store" });
-    const json = await res.json();
-    if (!json.ok) throw new Error(json.error || "Failed to load products");
-    const items = (json.products as Product[]).map((p) => ({
+    const json = (await res.json()) as { ok: boolean; products?: ApiProductItem[] };
+    if (!json.ok || !json.products) throw new Error("Failed to load products");
+    const items = json.products.map((p) => ({
       id: p.id,
       name: p.name,
       slug: p.slug,
-      price: formatPriceDisplay((p as any).price as string),
-      image: (p as any).image || "/items/item-01.jpg",
+      price: formatPriceDisplay(p.price),
+      image: p.image || "/items/item-01.jpg",
     }));
     return items;
   } catch (e) {

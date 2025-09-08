@@ -17,6 +17,26 @@ interface IProduct {
   additionalInfo: string[];
 }
 
+interface AttributeNode { name?: string | null; value?: string | null }
+interface VariationNode {
+  id: string;
+  name?: string | null;
+  price?: string | null;
+  stockStatus?: string | null;
+  stockQuantity?: number | null;
+  attributes?: { nodes: AttributeNode[] } | null;
+}
+interface MediaNode { sourceUrl?: string | null }
+interface ProductApiNode {
+  id: string;
+  name: string;
+  price?: string | null;
+  variations?: { nodes: VariationNode[] } | null;
+  galleryImages?: { nodes: MediaNode[] } | null;
+  image?: MediaNode | null;
+  description?: string | null;
+}
+
 function parseRublesNumber(raw?: string | null): number | null {
   if (!raw) return null;
   const cleaned = String(raw).replace(/&nbsp;/g, ' ').replace(/[^0-9,\.]/g, '').replace(/,/g, '.');
@@ -49,9 +69,9 @@ function sanitizeHtmlToLines(html?: string | null): string[] {
 
 async function fetchProduct(slug: string) {
   const res = await fetch(`/api/products/${slug}`, { cache: "no-store" });
-  const json = await res.json();
-  if (!json.ok) throw new Error(json.error || "Failed to load product");
-  return json.product as any;
+  const json = (await res.json()) as { ok: boolean; product?: ProductApiNode | null; error?: string };
+  if (!json.ok || !json.product) throw new Error(json.error || "Failed to load product");
+  return json.product;
 }
 
 interface ProductDetailProps {
@@ -64,7 +84,7 @@ export default function ProductDetail({ productSlug }: ProductDetailProps) {
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [rawProduct, setRawProduct] = useState<any | null>(null);
+  const [rawProduct, setRawProduct] = useState<ProductApiNode | null>(null);
 
   const product: IProduct | null = useMemo(() => {
     if (!rawProduct) return null;
@@ -72,28 +92,28 @@ export default function ProductDetail({ productSlug }: ProductDetailProps) {
     const name: string = rawProduct.name ?? "";
 
     const mainImage: string | undefined = rawProduct.image?.sourceUrl ?? undefined;
-    const gallery: string[] = (rawProduct.galleryImages?.nodes || []).map((n: any) => n?.sourceUrl).filter(Boolean);
+    const gallery: string[] = (rawProduct.galleryImages?.nodes || []).map((n: MediaNode) => n?.sourceUrl || "").filter(Boolean) as string[];
     const images = [mainImage, ...gallery].filter(Boolean) as string[];
 
     const descriptionLines = sanitizeHtmlToLines(rawProduct.description);
 
-    const variationNodes: any[] = rawProduct.variations?.nodes || [];
+    const variationNodes: VariationNode[] = rawProduct.variations?.nodes || [];
     const sizeValues = Array.from(
       new Set(
         variationNodes
-          .flatMap(v => (v.attributes?.nodes || []).map((a: any) => a?.value))
+          .flatMap(v => (v.attributes?.nodes || []).map((a: AttributeNode) => a?.value))
           .filter(Boolean)
-          .map((v: string) => v.toLowerCase())
+          .map((v: string | null) => (v || '').toLowerCase())
       )
     );
 
     const available = new Set<string>(
       variationNodes
         .filter(v => (v.stockStatus || "").toUpperCase() === "IN_STOCK" || (v.stockQuantity ?? 0) > 0)
-        .flatMap(v => (v.attributes?.nodes || []).map((a: any) => (a?.value || "").toLowerCase()))
+        .flatMap(v => (v.attributes?.nodes || []).map((a: AttributeNode) => (a?.value || "").toLowerCase()))
     );
 
-    const sizes = sizeValues.length > 0 ? sizeValues : ["s", "m", "l", "xl"];
+    const sizes = sizeValues.length > 0 ? (sizeValues as string[]) : ["s", "m", "l", "xl"];
     const availableSizes = sizes.filter(s => available.has(s));
 
     const parentPriceStr: string | null = rawProduct.price ?? null;
@@ -191,7 +211,7 @@ export default function ProductDetail({ productSlug }: ProductDetailProps) {
         />
       </div>
 
-      <div className="relative z-10 max-w-[1280px] mx-auto px-4 sm:px-6 py-12 lg:py-38">
+      <div className="relative z-10 max-w-[1280px] mx-auto px-4 sm:px-6 py-12 lg:py-16">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
           {/* Left: Image area - fills height, hover changes image */}
           <div className="relative w-full h-[70vh] min-h-[520px] max-h-[780px] bg-white rounded-[24px] overflow-hidden">
