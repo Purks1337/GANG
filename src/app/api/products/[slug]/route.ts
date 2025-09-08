@@ -1,8 +1,6 @@
 import { NextResponse } from "next/server";
 import { executeGraphQL } from "@/lib/graphql";
 
-type Params = { params: { slug: string } };
-
 interface AttributeNode { name?: string | null; value?: string | null }
 interface VariationNode {
   id: string;
@@ -59,7 +57,7 @@ const PRODUCT_BY_SLUG = /* GraphQL */ `
   }
 `;
 
-export async function GET(_: Request, { params }: Params) {
+export async function GET(_: Request, { params }: { params: { slug: string } }) {
   try {
     const { slug } = params;
     const data = await executeGraphQL<ProductBySlugResponse>({
