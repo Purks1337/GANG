@@ -14,16 +14,25 @@ interface Product {
   slug: string;
 }
 
+function parseRublesNumber(raw?: string): number | null {
+  if (!raw) return null;
+  const cleaned = raw
+    .replace(/&nbsp;/g, " ")
+    .replace(/[^0-9,\.\-–—]/g, "") // keep digits, comma, dot, dashes
+    .replace(/,/g, ".");
+  // If it's a range like "2990.00-4903.00" take first part
+  const first = cleaned.split(/[-–—]/)[0];
+  const value = parseFloat(first);
+  if (isNaN(value)) return null;
+  return Math.round(value);
+}
+
 function formatPriceDisplay(raw?: string): string {
-  if (!raw) return "";
-  const cleaned = raw.replace(/&nbsp;/g, " ").replace(/\s+₽/g, "").trim();
-  const hasRange = cleaned.includes("-");
-  const part = hasRange ? cleaned.split("-")[0] : cleaned;
-  const digits = part.replace(/[^0-9]/g, "");
-  if (!digits) return raw;
-  const value = parseInt(digits, 10);
-  const formatted = new Intl.NumberFormat("ru-RU").format(value) + " ₽";
-  return hasRange ? `от ${formatted}` : formatted;
+  const num = parseRublesNumber(raw);
+  if (num === null) return "";
+  const formatted = new Intl.NumberFormat("ru-RU").format(num) + " ₽";
+  const isRange = !!raw && (/[-–—]/.test(raw));
+  return isRange ? `от ${formatted}` : formatted;
 }
 
 async function fetchProducts(): Promise<Product[]> {
@@ -73,7 +82,7 @@ export default function Catalog() {
       </div>
 
       {/* Main content */}
-      <div className="relative z-10 pt-24 pb-32">
+      <div className="relative z-10 pt-38 pb-32">
         {/* Products Grid - exact Figma dimensions */}
         <main className="px-4 sm:px-6">
           {/* Container with responsive max-width */}
