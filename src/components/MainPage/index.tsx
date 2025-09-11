@@ -8,13 +8,16 @@ export default function MainPage() {
     <main className="relative flex items-center justify-center min-h-dvh">
       {/* Background image (responsive) */}
       <div className="absolute inset-0 -z-10 pointer-events-none">
-        <Image
-          src="/main-bg.jpg"
+        <video
+          autoPlay
+          loop
+          muted
+          src="/final-1.mp4"
           alt=""
           fill
           priority
           sizes="100vw"
-          className="object-cover object-center"
+          className="object-cover object-center mx-auto w-full h-full"
         />
       </div>
       {/* Overlay: opacity driven by theme variable (0 on light, >0 on dark) */}
