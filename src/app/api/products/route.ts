@@ -16,7 +16,7 @@ export async function GET() {
     });
 
   } catch (error) {
-    // @ts-expect-error // TODO: type error better
-    return NextResponse.json({ ok: false, error: (error as Error).message }, { status: 500 });
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    return NextResponse.json({ ok: false, error: errorMessage }, { status: 500 });
   }
 }
