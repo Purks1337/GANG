@@ -20,6 +20,12 @@ interface CreateOrderRequest {
   line_items: Array<{ product_id: number; variation_id?: number; quantity: number }>;
 }
 
+interface WooOrder {
+  id: number;
+  checkout_payment_url?: string | null;
+  payment_url?: string | null;
+}
+
 export async function POST(req: NextRequest) {
   try {
     const body = (await req.json()) as { items?: CheckoutItem[]; contact?: Record<string, unknown> };
@@ -77,7 +83,7 @@ export async function POST(req: NextRequest) {
       line_items: lineItems,
     };
 
-    const order = await wooPost<any>("/orders", orderPayload);
+    const order = await wooPost<WooOrder>("/orders", orderPayload);
 
     const orderId = order?.id ? String(order.id) : `REQ-${Date.now()}`;
     const paymentUrl = order?.checkout_payment_url || order?.payment_url || null;
