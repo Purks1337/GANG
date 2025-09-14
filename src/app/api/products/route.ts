@@ -16,7 +16,7 @@ export async function GET() {
     });
 
   } catch (error) {
-    // @ts-ignore
+    // @ts-expect-error
     return NextResponse.json({ ok: false, error: (error as Error).message }, { status: 500 });
   }
 }
