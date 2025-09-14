@@ -37,6 +37,11 @@ export default function CheckoutPage() {
       if (!res.ok || !json.ok) {
         throw new Error(json.error || "Не удалось оформить заявку");
       }
+      if (json.paymentUrl) {
+        // External payment redirect (WooCommerce checkout payment URL)
+        window.location.href = json.paymentUrl as string;
+        return;
+      }
       router.replace(`/order/success?orderId=${encodeURIComponent(json.orderId)}`);
     } catch (err) {
       setError((err as Error).message);

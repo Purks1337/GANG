@@ -16,132 +16,120 @@ bun dev
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-## WordPress (Backend) - Local via Docker
-
-Stack is defined in `docker-compose.yml` and includes MySQL, WordPress, and phpMyAdmin.
-
-Commands:
-
-```bash
-# Start containers
-npm run wp:up
-
-# Stop containers
-npm run wp:down
-
-# Tail logs
-npm run wp:logs
-```
-
-Services:
-- WordPress: http://localhost:8080
-- phpMyAdmin: http://localhost:8081
-
-Default MySQL credentials (override with env):
-- DB: wordpress
-- User: wp
-- Password: wp
-- Root password: root
-
 ---
 
-## Safe Backend Deploy on VPS (Timeweb Cloud/Ubuntu + Docker)
+## Backend: WordPress + WooCommerce (LEMP, без Docker)
 
-Follow this to avoid downtime and data loss when deploying WordPress + MySQL with Docker on a VPS.
+Цель: лёгкий стек без контейнеров на VPS (Ubuntu 22.04), WordPress + WooCommerce + MariaDB, Nginx + PHP-FPM.
 
-### 1) Server preparation
+### 1) Установка LEMP на VPS
+
 ```bash
+# Обновления
 sudo apt update && sudo apt -y upgrade
-curl -fsSL https://get.docker.com | sudo sh
-sudo usermod -aG docker $USER && newgrp docker
-docker --version && docker compose version
-```
 
-### 2) Project directory and files
-```bash
-sudo mkdir -p /opt/gang-backend && sudo chown -R $USER:$USER /opt/gang-backend
-cd /opt/gang-backend
-```
-Create `.env`:
-```bash
-MYSQL_DATABASE=wordpress
-MYSQL_USER=wp
-MYSQL_PASSWORD=wp-strong-pass
-MYSQL_ROOT_PASSWORD=root-strong-pass
-```
-Ensure `docker-compose.yml` binds to localhost only (keeps ports private):
-```yaml
-# ports:
-#   - "127.0.0.1:8080:80"  # wordpress
-#   - "127.0.0.1:8081:80"  # phpmyadmin
-```
-
-### 3) Safe bring-up (step-by-step)
-```bash
-cd /opt/gang-backend
-# Step 1: DB only
-docker compose up -d db && docker compose logs -f db
-# Step 2: WordPress when DB is healthy
-docker compose up -d wordpress && docker compose logs -f wordpress
-# (Optional) phpMyAdmin
-docker compose up -d phpmyadmin
-```
-Quick check:
-```bash
-curl -I http://127.0.0.1:8080
-```
-
-### 4) Nginx reverse proxy (public 80/443)
-```bash
+# Nginx
 sudo apt -y install nginx
-sudo tee /etc/nginx/sites-available/gang-backend >/dev/null <<'EOF'
+
+# MariaDB
+sudo apt -y install mariadb-server mariadb-client
+sudo mysql_secure_installation
+# Создать БД и пользователя
+sudo mysql <<'SQL'
+CREATE DATABASE wordpress CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE USER 'wp'@'localhost' IDENTIFIED BY 'wp-strong-pass';
+GRANT ALL PRIVILEGES ON wordpress.* TO 'wp'@'localhost';
+FLUSH PRIVILEGES;
+SQL
+
+# PHP-FPM + расширения
+sudo apt -y install php-fpm php-mysql php-xml php-gd php-curl php-zip php-mbstring
+```
+
+### 2) Установка WordPress
+
+```bash
+cd /var/www
+sudo mkdir -p gang-wp && sudo chown -R $USER:$USER gang-wp
+cd gang-wp
+curl -O https://wordpress.org/latest.tar.gz
+tar xzf latest.tar.gz --strip-components=1
+rm latest.tar.gz
+cp wp-config-sample.php wp-config.php
+sed -i "s/database_name_here/wordpress/" wp-config.php
+sed -i "s/username_here/wp/" wp-config.php
+sed -i "s/password_here/wp-strong-pass/" wp-config.php
+# Сгенерируйте SALT-ключи: https://api.wordpress.org/secret-key/1.1/salt/
+```
+
+### 3) Nginx виртуальный хост
+
+```bash
+sudo tee /etc/nginx/sites-available/gang-wp >/dev/null <<'EOF'
 server {
   listen 80;
   server_name api.gang-ground.ru;
+  root /var/www/gang-wp;
+  index index.php index.html;
+
   location / {
-    proxy_pass http://127.0.0.1:8080;
-    proxy_set_header Host $host;
-    proxy_set_header X-Forwarded-Proto $scheme;
-    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-    proxy_read_timeout 300;
+    try_files $uri $uri/ /index.php?$args;
+  }
+
+  location ~ \.php$ {
+    include snippets/fastcgi-php.conf;
+    fastcgi_pass unix:/var/run/php/php-fpm.sock; # проверьте сокет версии PHP
+  }
+
+  location ~* \.(jpg|jpeg|png|gif|svg|css|js|ico|webp)$ {
+    expires 30d;
+    access_log off;
   }
 }
 EOF
-sudo ln -s /etc/nginx/sites-available/gang-backend /etc/nginx/sites-enabled/gang-backend
+sudo ln -s /etc/nginx/sites-available/gang-wp /etc/nginx/sites-enabled/gang-wp
 sudo nginx -t && sudo systemctl reload nginx
 ```
-Add SSL later when stable:
+
+Для SSL добавьте certbot позже:
 ```bash
 sudo snap install --classic certbot
 sudo ln -s /snap/bin/certbot /usr/bin/certbot
 sudo certbot --nginx -d api.gang-ground.ru --redirect -n --agree-tos -m you@mail.com
 ```
 
-### 5) WordPress first run (one-time)
-- Open http://SERVER_IP:8080 (temporarily) or https://api.gang-ground.ru (after Nginx/SSL).
-- Complete WP installer.
-- Settings → Permalinks → “Post name” `/%postname%` → Save.
-- Plugins: WooCommerce, WPGraphQL, WPGraphQL for WooCommerce (from GitHub releases).
-- Check GraphQL at `/graphql` (or `/?graphql`).
+### 4) Первая настройка WordPress
+- Откройте `http://api.gang-ground.ru` и завершите установку
+- Настройки → Постоянные ссылки → «Название записи» `/%postname%`
+- Плагины: WooCommerce (обязательно). REST API встроен в Woo.
 
-### 6) Frontend env (Vercel)
-Set in Vercel Project Settings → Environment Variables:
+### 5) WooCommerce REST API ключ
+- WooCommerce → Настройки → Продвинутые → REST API → Создать ключ (Чтение/Запись)
+- Сохраните Consumer Key/Secret
+
+### 6) Переменные окружения фронтенда
+Добавьте в переменные окружения проекта:
+
 ```bash
-NEXT_PUBLIC_WP_GRAPHQL_ENDPOINT=https://api.gang-ground.ru/graphql
+# Базовый URL WordPress (без слеша на конце)
+WOO_BASE_URL=https://api.gang-ground.ru
+# Ключи WooCommerce REST API
+WOO_CONSUMER_KEY=ck_...
+WOO_CONSUMER_SECRET=cs_...
 ```
-Redeploy the project.
 
-### 7) Stabilization checklist
-- Always work from the same directory `/opt/gang-backend`.
-- Do NOT use `docker compose down -v` (this deletes volumes/data). Use `docker compose down`.
-- Step up containers gradually (DB → WP → phpMyAdmin → Nginx).
-- Keep WordPress ports bound to localhost (`127.0.0.1:8080`), expose only 80/443 via Nginx.
-- Verify resources before changes: `free -h`, `df -h`.
-- Monitor: `docker compose ps`, `docker logs <container>`, `systemctl status nginx`.
-- Backups: snapshot Docker volumes (`db_data`, `wp_data`) before major changes.
+Примечание: если используете `next/image` с медиа WordPress, домен из `WOO_BASE_URL` будет автоматически разрешён (см. `next.config.js`).
 
-### 8) Troubleshooting quickies
-- Nginx error: `nginx -t` then `systemctl reload nginx`.
-- WP setup reappears: verify you didn’t delete volumes; confirm you’re in the same compose directory.
-- 404 on `/graphql`: re-save Permalinks and ensure WPGraphQL is active.
-- High load: start services one by one; consider upgrading VPS or limiting heavy plugins.
+### 7) Как это работает
+- `src/lib/woo.ts`: тонкий клиент Woo REST (`wooGet`, `wooPost`)
+- API-роуты:
+  - `GET /api/products` → Woo `/wc/v3/products`
+  - `GET /api/products/[slug]` → поиск по `slug`, вариации `/variations`
+  - `POST /api/checkout` → валидация остатков + создание заказа `/orders`
+
+---
+
+## Локальная разработка
+- Заполните `.env.local` указанными переменными (`WOO_*`)
+- Запустите `npm run dev`
+- По умолчанию поддержаны картинки с `localhost:8080` и домена из `WOO_BASE_URL`
