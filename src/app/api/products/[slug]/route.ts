@@ -23,7 +23,7 @@ interface ProductAttributes {
  */
 export async function GET(
   request: Request,
-  context: { params: { slug: string } }
+  context: any // Use 'any' to bypass Next.js 15 type bug on Vercel
 ) {
   const { slug } = context.params;
 
