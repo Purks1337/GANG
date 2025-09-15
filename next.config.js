@@ -1,3 +1,5 @@
+const path = require('path');
+
 /** @type {import('next').NextConfig} */
 
 // Helper function to extract hostname from a URL
@@ -17,14 +19,14 @@ const nextConfig = {
     remotePatterns: [
       {
         protocol: 'http',
-        hostname: getHostname(process.env.STRAPI_API_URL),
-        port: '',
+        hostname: 'api-31.130.144.157.nip.io',
+        port: '1337',
         pathname: '/uploads/**',
       },
-      // You can add more patterns here if needed for other image sources
     ],
   },
-  webpack(config) {
+  webpack: (config) => {
+    config.resolve.alias['@'] = path.resolve(__dirname, 'src');
     // This is needed to allow Next.js to handle images from the Strapi backend.
     // The default Next.js image loader only supports HTTP/HTTPS.
     // This configuration tells Next.js to allow images from any origin.
