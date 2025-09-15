@@ -199,7 +199,7 @@ export default function ProductDetail({ productSlug }: ProductDetailProps) {
   }
 
   return (
-    <div className="relative min-h-screen bg-background text-foreground transition-colors duration-300 overflow-hidden">
+    <div className="relative min-h-screen bg-background text-foreground transition-colors duration-300 overflow-hidden flex items-center justify-center">
       {/* Top decorative tag */}
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-[1458px] h-[480px] z-0 pointer-events-none">
         <Image
@@ -301,7 +301,7 @@ export default function ProductDetail({ productSlug }: ProductDetailProps) {
                              hover:bg-brand-green/90 transition-colors duration-200 
                              disabled:opacity-50 disabled:cursor-not-allowed
                              w-full lg:w-[311px]
-                             h-[53px]
+                             h-[53px] px-6
                              text-[20px] sm:text-[22px] lg:text-[24px]"
                   disabled={!selectedSize}
                 >
