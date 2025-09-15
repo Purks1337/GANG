@@ -23,9 +23,9 @@ interface ProductAttributes {
  */
 export async function GET(
   request: Request,
-  { params }: { params: { slug: string } }
+  context: { params: { slug: string } }
 ) {
-  const { slug } = params;
+  const { slug } = context.params;
 
   if (!slug) {
     return NextResponse.json(
