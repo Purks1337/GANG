@@ -1,27 +1,49 @@
 import { NextResponse } from "next/server";
-import { wooGet, type WooProduct } from "@/lib/woo";
+import {
+  getStrapiURL,
+  strapiFetch,
+  type StrapiCollectionResponse,
+  type StrapiDataItem,
+  type StrapiImageAttributes,
+} from "@/lib/strapi";
 
+// Define the expected structure of a Product's attributes from Strapi
+interface ProductAttributes {
+  name: string;
+  slug: string;
+  price: number;
+  description: string; // Assuming you have a description field
+  image: {
+    data: StrapiDataItem<StrapiImageAttributes>;
+  };
+}
+
+/**
+ * API route to fetch all products from Strapi.
+ */
 export async function GET() {
   try {
-    // Fetch published products. Adjust per_page as needed.
-    const products = await wooGet<WooProduct[]>("/products", {
-      status: "publish",
-      per_page: 50,
-      orderby: "date",
-      order: "desc",
-    });
+    // Fetch products from Strapi, populating the 'image' relation
+    const response = await strapiFetch<StrapiCollectionResponse<ProductAttributes>>(
+      "/api/products?populate=image"
+    );
 
-    const mapped = (products || []).map((p) => ({
+    // Map the Strapi data structure to a simpler format for the frontend
+    const mappedProducts = (response.data || []).map((p) => ({
       id: String(p.id),
-      name: p.name,
-      slug: p.slug,
-      price: p.price_html || p.price || "",
-      image: p.images && p.images.length > 0 ? p.images[0]!.src : "",
+      name: p.attributes.name,
+      slug: p.attributes.slug,
+      price: `₽${p.attributes.price}`, // Format price as needed
+      image: getStrapiURL(p.attributes.image?.data?.attributes?.url),
     }));
 
-    return NextResponse.json({ ok: true, products: mapped });
+    return NextResponse.json({ ok: true, products: mappedProducts });
   } catch (error) {
+    console.error("Error fetching products from Strapi:", error);
     const errorMessage = error instanceof Error ? error.message : String(error);
-    return NextResponse.json({ ok: false, error: errorMessage }, { status: 500 });
+    return NextResponse.json(
+      { ok: false, error: errorMessage },
+      { status: 500 }
+    );
   }
 }

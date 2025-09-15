@@ -1,95 +1,72 @@
-import { NextRequest, NextResponse } from "next/server";
-import { wooGet, wooPost, type WooProduct, type WooVariation } from "@/lib/woo";
+import { NextResponse } from "next/server";
+import { strapiFetch, type StrapiSingleResponse } from "@/lib/strapi";
 
-interface CheckoutItem {
-  id: string;
+// Define the structure for a line item in an order
+interface LineItem {
+  product_id: string;
   name: string;
-  price: string;
-  image: string;
-  size?: string;
   quantity: number;
-  slug?: string;
+  price: string;
 }
 
-interface CreateOrderRequest {
-  payment_method?: string;
-  payment_method_title?: string;
-  set_paid?: boolean;
-  billing?: Record<string, unknown>;
-  shipping?: Record<string, unknown>;
-  line_items: Array<{ product_id: number; variation_id?: number; quantity: number }>;
+// Define the structure for the customer details
+interface CustomerDetails {
+  name: string;
+  phone: string;
+  email?: string;
+  notes?: string;
 }
 
-interface WooOrder {
-  id: number;
-  checkout_payment_url?: string | null;
-  payment_url?: string | null;
+// Define the structure of the data we will post to create an order in Strapi
+interface OrderPayload {
+  line_items: LineItem[];
+  customer_details: CustomerDetails;
+  status: "pending" | "completed" | "cancelled";
 }
 
-export async function POST(req: NextRequest) {
+/**
+ * API route to create an order in Strapi.
+ * This is a simplified version and does not handle payment processing.
+ */
+export async function POST(request: Request) {
   try {
-    const body = (await req.json()) as { items?: CheckoutItem[]; contact?: Record<string, unknown> };
-    const items: CheckoutItem[] = Array.isArray(body.items) ? body.items : [];
-    if (items.length === 0) {
-      return NextResponse.json({ ok: false, error: "Корзина пуста" }, { status: 400 });
-    }
-
-    const lineItems: Array<{ product_id: number; variation_id?: number; quantity: number }> = [];
-
-    for (const item of items) {
-      const inferredSlug = (item.slug && item.slug.trim())
-        || item.name?.toString().toLowerCase().replace(/\s+/g, "-")
-        || "";
-      if (!inferredSlug) {
-        return NextResponse.json({ ok: false, error: `Не удалось определить товар: ${item.name}` }, { status: 400 });
-      }
-
-      const list = await wooGet<WooProduct[]>("/products", { slug: inferredSlug, status: "publish", per_page: 1 });
-      const prod = list[0];
-      if (!prod) {
-        return NextResponse.json({ ok: false, error: `Товар не найден: ${item.name}` }, { status: 404 });
-      }
-
-      if (prod.type === "variable") {
-        const variations = await wooGet<WooVariation[]>(`/products/${prod.id}/variations`, { per_page: 100 });
-        const match = variations.find((v) =>
-          (v.attributes || []).some((a) => (a.option || "").toLowerCase() === (item.size || "").toLowerCase())
-        );
-        if (!match) {
-          return NextResponse.json({ ok: false, error: `Вариация не найдена: ${item.name} ${item.size || ""}` }, { status: 400 });
-        }
-        const inStock = (match.stock_status || "") === "instock" || (match.stock_quantity ?? 0) > 0;
-        if (!inStock) {
-          return NextResponse.json({ ok: false, error: `Нет в наличии: ${item.name} ${item.size || ""}` }, { status: 400 });
-        }
-        lineItems.push({ product_id: prod.id, variation_id: match.id, quantity: Math.max(1, item.quantity | 0) });
-      } else {
-        const inStock = (prod.stock_status || "") === "instock" || (prod.stock_quantity ?? 0) > 0;
-        if (!inStock) {
-          return NextResponse.json({ ok: false, error: `Нет в наличии: ${item.name}` }, { status: 400 });
-        }
-        lineItems.push({ product_id: prod.id, quantity: Math.max(1, item.quantity | 0) });
-      }
-    }
-
-    const contact = body.contact || {};
-
-    const orderPayload: CreateOrderRequest = {
-      set_paid: false,
-      payment_method: "",
-      payment_method_title: "",
-      billing: contact as Record<string, unknown>,
-      shipping: contact as Record<string, unknown>,
-      line_items: lineItems,
+    const { cart, customerDetails } = (await request.json()) as {
+      cart: LineItem[];
+      customerDetails: CustomerDetails;
     };
 
-    const order = await wooPost<WooOrder>("/orders", orderPayload);
+    if (!cart || cart.length === 0 || !customerDetails) {
+      return NextResponse.json(
+        { ok: false, error: "Cart items and customer details are required" },
+        { status: 400 }
+      );
+    }
 
-    const orderId = order?.id ? String(order.id) : `REQ-${Date.now()}`;
-    const paymentUrl = order?.checkout_payment_url || order?.payment_url || null;
+    // Prepare the payload for Strapi.
+    // NOTE: This assumes you have a "Content-Type" in Strapi called "orders"
+    // with fields: "line_items" (JSON), "customer_details" (JSON), and "status" (Text).
+    const orderData: OrderPayload = {
+      line_items: cart,
+      customer_details: customerDetails,
+      status: "pending",
+    };
 
-    return NextResponse.json({ ok: true, orderId, paymentUrl });
-  } catch (e) {
-    return NextResponse.json({ ok: false, error: (e as Error).message }, { status: 500 });
+    const response = await strapiFetch<StrapiSingleResponse<OrderPayload>>(
+      "/api/orders",
+      {
+        method: "POST",
+        body: JSON.stringify({ data: orderData }), // Strapi expects a 'data' wrapper
+      }
+    );
+
+    // Return the ID of the created order
+    return NextResponse.json({ ok: true, orderId: response.data.id });
+  } catch (error) {
+    console.error("Error creating order in Strapi:", error);
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    return NextResponse.json(
+      { ok: false, error: errorMessage },
+      { status: 500 }
+    );
   }
 }

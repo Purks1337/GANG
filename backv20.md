@@ -1,183 +1,162 @@
-# Полное руководство: Установка WordPress + LEMP на 1GB RAM сервере (Ubuntu 22.04)
+# Инструкция по установке Strapi на Ubuntu 22.04
 
-Это чистовая инструкция для установки с нуля. Она включает очистку от старых попыток, оптимизацию под малое количество ОЗУ и шаги для избежания проблем со входом. Выполняйте команды по порядку.
+Этот гайд представляет собой единый скрипт для полной автоматической установки Strapi с нуля. Он включает в себя полную очистку от предыдущей LEMP-установки.
 
----
+## Полный скрипт автоматической установки
 
-### Шаг 0: Полная очистка от предыдущей установки
+> **Внимание:** Этот скрипт удалит Nginx, MariaDB, PHP и связанные с ними файлы. Выполняйте его только на чистом сервере или если вы готовы к полной переустановке бэкенда.
 
-**Внимание! Эти команды удалят старую базу данных и файлы WordPress.**
+Просто скопируйте весь блок кода ниже и вставьте его в терминал вашего сервера. Скрипт сам задаст все необходимые переменные и выполнит все шаги.
 
 ```bash
-# Останавливаем службы
-sudo systemctl stop nginx
-sudo systemctl stop php*-fpm
+#!/bin/bash
+set -e
 
-# Удаляем базу данных и пользователя
-sudo mariadb -e "DROP DATABASE IF EXISTS wordpress; DROP USER IF EXISTS 'wp'@'localhost';"
+# --- НАСТРАИВАЕМЫЕ ПЕРЕМЕННЫЕ ---
+APP_NAME="gang-strapi"
+APP_PATH="/var/www/gang-strapi"
+NODE_VERSION="18" # Strapi рекомендует Node.js v18 или v20
 
-# Удаляем старые файлы WordPress
+# IP-адрес вашего сервера. Скрипт определит его автоматически.
+IP_ADDRESS=$(curl -s ifconfig.me)
+API_URL="http://${IP_ADDRESS}:1337"
+DOMAIN_URL="http://api-${IP_ADDRESS}.nip.io"
+
+
+# --- ШАГ 0: ПОЛНАЯ ОЧИСТКА ОТ LEMP СТЕКА ---
+echo "--- Шаг 0: Полная очистка от LEMP ---"
+sudo systemctl stop nginx || true
+sudo apt-get purge -y nginx nginx-common
+sudo apt-get purge -y mariadb-server mariadb-client
+sudo apt-get purge -y php.*
+sudo apt-get autoremove -y
 sudo rm -rf /var/www/gang-wp
+sudo rm -f /etc/nginx/sites-available/gang-wp /etc/nginx/sites-enabled/gang-wp
+echo "Очистка завершена."
 
-# Удаляем конфиг Nginx
-sudo rm -f /etc/nginx/sites-available/gang-wp
-sudo rm -f /etc/nginx/sites-enabled/gang-wp
 
-# Удаляем конфиги оптимизации
-sudo rm -f /etc/mysql/mariadb.conf.d/60-gang-tuning.cnf
+# --- ШАГ 1: УСТАНОВКА NODE.JS И ЗАВИСИМОСТЕЙ ---
+echo "--- Шаг 1: Установка Node.js v${NODE_VERSION} ---"
+sudo apt-get update
+sudo apt-get install -y build-essential curl
+curl -fsSL https://deb.nodesource.com/setup_${NODE_VERSION}.x | sudo -E bash -
+sudo apt-get install -y nodejs
+# Устанавливаем PM2 - менеджер процессов для Node.js
+sudo npm install pm2 -g
+echo "Установка Node.js завершена."
 
-# Перезапускаем Nginx, чтобы он поднялся со стандартным конфигом
-sudo systemctl start nginx
-```
 
----
+# --- ШАГ 2: УСТАНОВКА И НАСТРОЙКА STRAPI ---
+echo "--- Шаг 2: Установка Strapi ---"
+sudo mkdir -p ${APP_PATH}
+# Даем права текущему пользователю, чтобы создать проект
+sudo chown -R $USER:$USER ${APP_PATH}
 
-### Шаг 1: Подготовка и установка LEMP
+# Создаем новый проект Strapi. Quickstart использует SQLite по умолчанию - идеально для легкого старта.
+npx create-strapi-app@latest ${APP_PATH} --quickstart --no-run
 
-```bash
-# Обновляем систему и ставим всё необходимое одной командой
-sudo apt update && sudo apt -y upgrade
-sudo apt -y install nginx mariadb-server mariadb-client php-fpm php-mysql php-xml php-gd php-curl php-zip php-mbstring curl unzip
+echo "Настройка переменных окружения для Strapi..."
+# Создаем .env файл для продакшн-сборки
+tee ${APP_PATH}/.env > /dev/null <<EOF
+HOST=0.0.0.0
+PORT=1337
+APP_KEYS=$(openssl rand -base64 32),$(openssl rand -base64 32),$(openssl rand -base64 32)
+API_TOKEN_SALT=$(openssl rand -base64 32)
+ADMIN_JWT_SECRET=$(openssl rand -base64 32)
+TRANSFER_TOKEN_SALT=$(openssl rand -base64 32)
+JWT_SECRET=$(openssl rand -base64 32)
+DATABASE_CLIENT=sqlite
+DATABASE_FILENAME=./.tmp/data.db
+EOF
 
-# Включаем службы
-# Находим и включаем правильную версию PHP-FPM
-PHP_FPM_SERVICE=$(find /lib/systemd/system -name "php*-fpm.service" | sed 's@.*/@@')
-sudo systemctl enable --now nginx mariadb "$PHP_FPM_SERVICE"
-```
+echo "Сборка Strapi для продакшена..."
+cd ${APP_PATH}
+NODE_ENV=production npm run build
 
----
+# Меняем владельца обратно на www-data для безопасности
+sudo chown -R www-data:www-data ${APP_PATH}
+echo "Установка Strapi завершена."
 
-### Шаг 2: Настройка MariaDB (с оптимизацией)
 
-```bash
-# 1. Запускаем скрипт базовой безопасности (отвечайте на вопросы)
-sudo mysql_secure_installation
+# --- ШАГ 3: ЗАПУСК STRAPI ЧЕРЕЗ PM2 ---
+echo "--- Шаг 3: Запуск Strapi через PM2 ---"
+# Создаем экосистемный файл для PM2
+tee ${APP_PATH}/ecosystem.config.js > /dev/null <<'EOF'
+module.exports = {
+  apps: [
+    {
+      name: 'gang-strapi',
+      cwd: __dirname,
+      script: 'npm',
+      args: 'start',
+      env: {
+        NODE_ENV: 'production',
+      },
+    },
+  ],
+};
+EOF
 
-# 2. Создаем базу данных и пользователя одной командой
-sudo mariadb -e "CREATE DATABASE wordpress CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci; CREATE USER 'wp'@'localhost' IDENTIFIED BY 'wp-strong-pass'; GRANT ALL PRIVILEGES ON wordpress.* TO 'wp'@'localhost'; FLUSH PRIVILEGES;"
+# Запускаем приложение от имени www-data
+sudo -u www-data pm2 start ${APP_PATH}/ecosystem.config.js
+# Сохраняем конфигурацию PM2 для автозапуска после перезагрузки сервера
+sudo pm2 startup systemd -u www-data --hp /home/$USER
+sudo pm2 save
+echo "Strapi запущен через PM2."
 
-# 3. Оптимизируем MariaDB для 1 ГБ RAM
-printf '%s\n' '[mysqld]' 'innodb_buffer_pool_size = 256M' 'innodb_log_file_size = 64M' 'max_connections = 50' 'table_open_cache = 400' 'thread_cache_size = 8' | sudo tee /etc/mysql/mariadb.conf.d/60-gang-tuning.cnf >/dev/null
 
-# 4. Перезапускаем MariaDB для применения настроек
-sudo systemctl restart mariadb
-```
+# --- ШАГ 4: УСТАНОВКА И НАСТРОЙКА NGINX КАК REVERSE PROXY ---
+echo "--- Шаг 4: Настройка Nginx ---"
+sudo apt-get install -y nginx
 
----
-
-### Шаг 3: Настройка PHP-FPM (с оптимизацией)
-
-```bash
-# Находим путь к php.ini и меняем лимиты памяти
-INI_PATH=$(sudo find /etc/php -name "php.ini" -and -path "*/fpm/*" | head -n 1)
-sudo sed -i "s/^memory_limit = .*/memory_limit = 256M/" "$INI_PATH"
-sudo sed -i "s/^upload_max_filesize = .*/upload_max_filesize = 32M/" "$INI_PATH"
-sudo sed -i "s/^post_max_size = .*/post_max_size = 32M/" "$INI_PATH"
-
-# Перезапускаем PHP-FPM
-sudo systemctl restart php*-fpm
-```
-
----
-
-### Шаг 4: Установка WordPress (автоматизированная)
-
-```bash
-# 1. Создаем директорию и переходим в нее
-sudo mkdir -p /var/www/gang-wp
-cd /var/www/gang-wp
-
-# 2. Скачиваем, распаковываем и очищаем
-curl -O https://wordpress.org/latest.tar.gz
-sudo tar xzf latest.tar.gz --strip-components=1
-sudo rm latest.tar.gz
-
-# 3. Создаем и настраиваем wp-config.php
-sudo cp wp-config-sample.php wp-config.php
-sudo sed -i "s/database_name_here/wordpress/" wp-config.php
-sudo sed -i "s/username_here/wp/" wp-config.php
-sudo sed -i "s/password_here/wp-strong-pass/" wp-config.php
-
-# 4. Генерируем и вставляем свежие SALT-ключи
-sudo sed -i "/AUTH_KEY/d;/SECURE_AUTH_KEY/d;/LOGGED_IN_KEY/d;/NONCE_KEY/d;/AUTH_SALT/d;/SECURE_AUTH_SALT/d;/LOGGED_IN_SALT/d;/NONCE_SALT/d" wp-config.php
-curl -s https://api.wordpress.org/secret-key/1.1/salt/ | sudo tee -a wp-config.php >/dev/null
-```
-
----
-
-### Шаг 5: Настройка Nginx
-
-Мы будем использовать домен `nip.io`, чтобы избежать проблем с куки при работе по IP. **Замените `ВАШ.IP.АДРЕС.СЮДА` на IP вашего сервера (точки вместо дефисов).** Например, для IP `31.130.144.157` домен будет `api-31-130-144-157.nip.io`.
-
-```bash
-# --- ЗАМЕНИТЕ IP АДРЕС ВНУТРИ КАВЫЧЕК ---
-SERVER_IP="31.130.144.157"
-# --- БОЛЬШЕ НИЧЕГО НЕ ТРОГАЙТЕ ---
-
-HOST_NAME="api-$(echo $SERVER_IP | tr '.' '-').nip.io"
-PHP_SOCK=$(find /var/run/php -name "php*-fpm.sock" | head -n 1)
-
-# Создаем конфиг Nginx
-sudo tee /etc/nginx/sites-available/gang-wp >/dev/null <<EOF
+sudo tee /etc/nginx/sites-available/gang-strapi > /dev/null <<EOF
 server {
-  listen 80;
-  server_name $HOST_NAME;
-  root /var/www/gang-wp;
-  index index.php index.html;
+    listen 80;
+    server_name api-${IP_ADDRESS}.nip.io;
 
-  location / {
-    try_files \$uri \$uri/ /index.php?\$args;
-  }
-
-  location ~ \\.php\$ {
-    include snippets/fastcgi-php.conf;
-    fastcgi_pass unix:$PHP_SOCK;
-    fastcgi_buffers 16 16k;
-    fastcgi_buffer_size 32k;
-  }
-
-  location ~* \\.(jpg|jpeg|png|gif|svg|css|js|ico|webp)\$ {
-    expires 30d;
-    access_log off;
-  }
+    location / {
+        proxy_pass http://127.0.0.1:1337;
+        proxy_http_version 1.1;
+        proxy_set_header X-Forwarded-Host \$host;
+        proxy_set_header X-Forwarded-Server \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+        proxy_set_header Host \$host;
+        proxy_set_header Upgrade \$http_upgrade;
+        proxy_set_header Connection "Upgrade";
+        proxy_pass_request_headers on;
+    }
 }
 EOF
 
-# Включаем наш сайт и отключаем дефолтный
-sudo ln -s /etc/nginx/sites-available/gang-wp /etc/nginx/sites-enabled/gang-wp
+sudo ln -sf /etc/nginx/sites-available/gang-strapi /etc/nginx/sites-enabled/
 sudo rm -f /etc/nginx/sites-enabled/default
+sudo nginx -t
+sudo systemctl restart nginx
+echo "Настройка Nginx завершена."
 
-# Проверяем и перезапускаем Nginx
-sudo nginx -t && sudo systemctl reload nginx
+
+# --- ЗАВЕРШЕНИЕ ---
+echo -e "\n\n--- УСТАНОВКА STRAPI ЗАВЕРШЕНА! ---"
+echo "URL для входа в админ-панель: ${DOMAIN_URL}/admin"
+echo "URL для API запросов: ${DOMAIN_URL}"
+echo "-----------------------------------"
+echo "Следующие шаги:"
+echo "1. Зайдите в админ-панель по URL выше и создайте своего первого администратора."
+echo "2. Перейдите в 'Content-Type Builder' и создайте ваши коллекции:"
+echo "   - 'Product' (name, slug, price, description, image)"
+echo "   - 'Order' (line_items (JSON), customer_details (JSON), status)"
+echo "3. Перейдите в 'Settings -> Users & Permissions Plugin -> Roles -> Public' и разрешите 'find' и 'findOne' для Products."
+echo "4. Перейдите в 'Settings -> API Tokens' и создайте 'Full access' токен. Скопируйте его."
+echo "5. Пропишите STRAPI_API_URL=${DOMAIN_URL} и STRAPI_API_TOKEN в переменных окружения на Vercel."
+echo "6. Сделайте Redeploy на Vercel."
 ```
 
----
+## Как использовать скрипт
 
-### Шаг 6: Установка прав доступа
+1.  Скопируйте **весь** блок кода выше (начиная с `#!/bin/bash` и до самого конца).
+2.  Вставьте его в терминал вашего сервера и нажмите Enter.
+3.  Скрипт выполнит все шаги автоматически. В конце он выведет URL для входа в админ-панель.
 
-Это критически важный шаг.
-```bash
-sudo chown -R www-data:www-data /var/www/gang-wp
-sudo find /var/www/gang-wp -type d -exec chmod 755 {} \;
-sudo find /var/www/gang-wp -type f -exec chmod 644 {} \;
-```
-
----
-
-### Шаг 7: Первый запуск WordPress
-
-1.  Откройте в браузере `http://api-ВАШ-IP-АДРЕС.nip.io` (например, `http://api-31-130-144-157.nip.io`).
-2.  Пройдите стандартную установку: выберите язык, создайте пользователя-администратора. **Вы должны сразу попасть в админку.**
-3.  В админ-панели перейдите в **Настройки → Постоянные ссылки** и выберите **«Название записи»**. Нажмите «Сохранить изменения».
-
-### Шаг 8: Настройка WooCommerce и Vercel
-
-1.  **В админке WordPress:** Установите и активируйте плагин **WooCommerce**. Пройдите базовую настройку.
-2.  **Создайте API-ключи:** WooCommerce → Настройки → Продвинутые → REST API → Создать ключ (права: Чтение/Запись). Сохраните `Consumer Key` и `Consumer Secret`.
-3.  **В проекте на Vercel:** Перейдите в Settings → Environment Variables и установите:
-    *   `WOO_BASE_URL`: `http://api-ВАШ-IP-АДРЕС.nip.io`
-    *   `WOO_CONSUMER_KEY`: `ck_...` (ваш ключ)
-    *   `WOO_CONSUMER_SECRET`: `cs_...` (ваш секрет)
-4.  **Сделайте Redeploy** вашего проекта на Vercel.
-
-Теперь всё должно работать. Если после этого снова возникнет проблема со входом, значит, дело не в сервере, а в чем-то на стороне вашего браузера или сети (кеш, расширения, VPN).
+После этого у вас будет полностью рабочая установка Strapi, готовая к интеграции с вашим Next.js фронтендом.
