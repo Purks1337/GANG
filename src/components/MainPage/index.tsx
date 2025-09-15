@@ -1,11 +1,41 @@
 "use client";
 
 import Image from "next/image";
+import { useTheme } from "@/contexts/ThemeContext";
 
 
 export default function MainPage() {
+  const { theme } = useTheme();
+
   return (
-    <main className="relative flex items-center justify-center min-h-dvh">
+    <main className="relative flex items-center justify-center min-h-dvh overflow-hidden">
+      {/* Conditionally rendered tags for dark theme with animation */}
+      <div
+        className={`absolute inset-0 z-0 pointer-events-none transition-opacity duration-500 ${
+          theme === 'dark' ? 'opacity-100' : 'opacity-0'
+        }`}
+      >
+        {/* Top decorative tag */}
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-[1458px] h-[480px]">
+          <Image
+            src="/tag-top.svg"
+            alt=""
+            fill
+            className="object-contain"
+            style={{ transform: 'translateY(-188px)' }}
+          />
+        </div>
+        {/* Bottom decorative tag */}
+        <div className="absolute left-1/2 -translate-x-1/2 w-full max-w-[1458px] h-[480px]" style={{ bottom: '-200px' }}>
+          <Image
+            src="/tag-bot.svg"
+            alt=""
+            fill
+            className="object-contain"
+          />
+        </div>
+      </div>
+
       {/* Background image (responsive) */}
       <div className="absolute inset-0 -z-10 pointer-events-none overflow-hidden">
         <iframe
