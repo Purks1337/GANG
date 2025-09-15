@@ -49,16 +49,16 @@ export async function GET(
       );
     }
 
-    const product = response.data[0];
+    const product: any = response.data[0];
 
     // Map the Strapi data structure to a simpler format
     const mappedProduct = {
       id: String(product.id),
-      name: product.attributes.name,
-      slug: product.attributes.slug,
-      price: `₽${product.attributes.price}`,
-      description: product.attributes.description, // Pass description through
-      image: getStrapiURL(product.attributes.image?.data?.attributes?.url),
+      name: product.name,
+      slug: product.slug,
+      price: `₽${product.price}`,
+      description: product.description, // Pass description through
+      image: getStrapiURL(product.image?.url),
     };
 
     return NextResponse.json({ ok: true, product: mappedProduct });

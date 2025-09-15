@@ -29,12 +29,12 @@ export async function GET() {
     );
 
     // Map the Strapi data structure to a simpler format for the frontend
-    const mappedProducts = (response.data || []).map((p) => ({
+    const mappedProducts = (response.data || []).map((p: any) => ({
       id: String(p.id),
-      name: p.attributes.name,
-      slug: p.attributes.slug,
-      price: `₽${p.attributes.price}`, // Format price as needed
-      image: getStrapiURL(p.attributes.image?.data?.attributes?.url),
+      name: p.name,
+      slug: p.slug,
+      price: `₽${p.price}`, // Format price as needed
+      image: getStrapiURL(p.image?.url),
     }));
 
     return NextResponse.json({ ok: true, products: mappedProducts });
