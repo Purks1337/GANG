@@ -295,13 +295,12 @@ export default function ProductDetail({ productSlug }: ProductDetailProps) {
               </div>
 
               <div className="pt-2">
-                <button
+              <button
                   onClick={handleAddToCart}
                   className="rounded-full bg-brand-green text-black font-black uppercase 
                              hover:bg-brand-green/90 transition-colors duration-200 
                              disabled:opacity-50 disabled:cursor-not-allowed
-                             w-full lg:w-[311px]
-                             h-[53px]
+                             py-3 px-6 whitespace-nowrap
                              text-[20px] sm:text-[22px] lg:text-[24px]"
                   disabled={!selectedSize}
                 >
