@@ -67,7 +67,7 @@ function sanitizeHtmlToLines(html?: string | null): string[] {
   return lines;
 }
 
-async function fetchProduct(slug: string) {
+async function fetchProduct(slug: string): Promise<ProductApiNode> {
   const res = await fetch(`/api/products/${slug}`, { cache: "no-store" });
   const json = (await res.json()) as { ok: boolean; product?: ProductApiNode | null; error?: string };
   if (!json.ok || !json.product) throw new Error(json.error || "Failed to load product");
@@ -199,7 +199,7 @@ export default function ProductDetail({ productSlug }: ProductDetailProps) {
   }
 
   return (
-    <div className="relative min-h-screen bg-background text-foreground transition-colors duration-300 overflow-hidden">
+    <div className="relative min-h-screen bg-background text-foreground transition-colors duration-300 overflow-hidden flex items-center justify-center">
       {/* Top decorative tag */}
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-[1458px] h-[480px] z-0 pointer-events-none">
         <Image
@@ -211,7 +211,7 @@ export default function ProductDetail({ productSlug }: ProductDetailProps) {
         />
       </div>
 
-      <div className="relative z-10 max-w-[1280px] mx-auto px-4 sm:px-6 py-12 lg:py-16">
+      <div className="relative z-10 w-full max-w-[1280px] mx-auto px-4 sm:px-6 py-12 lg:py-16">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
           {/* Left: Image area - fills height, hover changes image */}
           <div className="relative w-full h-[70vh] min-h-[520px] max-h-[780px] bg-white rounded-[24px] overflow-hidden">
@@ -221,6 +221,7 @@ export default function ProductDetail({ productSlug }: ProductDetailProps) {
               fill
               className="object-cover"
               sizes="(max-width: 1024px) 100vw, 640px"
+              quality={100}
             />
             {product.images.map((_, idx) => (
               <div
@@ -277,7 +278,7 @@ export default function ProductDetail({ productSlug }: ProductDetailProps) {
                             : isSelected
                             ? 'bg-brand-green text-black scale-110'
                             : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                        }`}
+                      }`}
                       >
                         {size}
                       </button>
@@ -295,7 +296,7 @@ export default function ProductDetail({ productSlug }: ProductDetailProps) {
               </div>
 
               <div className="pt-2">
-              <button
+                <button
                   onClick={handleAddToCart}
                   className="rounded-full bg-brand-green text-black font-black uppercase 
                              hover:bg-brand-green/90 transition-colors duration-200 
