@@ -23,6 +23,7 @@ interface ProductAttributes {
  */
 export async function GET(
   request: Request,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   context: any // Use 'any' to bypass Next.js 15 type bug on Vercel
 ) {
   const { slug } = context.params;
