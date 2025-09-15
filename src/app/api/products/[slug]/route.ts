@@ -2,20 +2,18 @@ import { NextResponse } from "next/server";
 import {
   getStrapiURL,
   strapiFetch,
-  type StrapiCollectionResponse,
-  type StrapiDataItem,
+  type StrapiTransformedResponse,
   type StrapiImageAttributes,
 } from "@/lib/strapi";
 
-// Define the expected structure of a Product's attributes from Strapi
-interface ProductAttributes {
+// Define the expected structure of a Product from Strapi with transform plugin
+interface FlatProduct {
+  id: number;
   name: string;
   slug: string;
   price: number;
   description: string;
-  image: {
-    data: StrapiDataItem<StrapiImageAttributes>;
-  };
+  image: StrapiImageAttributes;
 }
 
 /**
@@ -37,9 +35,9 @@ export async function GET(
 
   try {
     // Fetch the product from Strapi by filtering on the slug
-    const response = await strapiFetch<
-      StrapiCollectionResponse<ProductAttributes>
-    >(`/api/products?filters[slug][$eq]=${slug}&populate=image`);
+    const response = await strapiFetch<StrapiTransformedResponse<FlatProduct>>(
+      `/api/products?filters[slug][$eq]=${slug}&populate=image&transform=true`
+    );
 
     // Strapi's filter always returns an array. If it's empty, product not found.
     if (!response.data || response.data.length === 0) {
@@ -49,7 +47,7 @@ export async function GET(
       );
     }
 
-    const product: any = response.data[0];
+    const product = response.data[0];
 
     // Map the Strapi data structure to a simpler format
     const mappedProduct = {

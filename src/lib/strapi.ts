@@ -30,6 +30,19 @@ export interface StrapiSingleResponse<T> {
   meta: object;
 }
 
+// Response shape for endpoints with the `transform` plugin enabled
+export interface StrapiTransformedResponse<T> {
+  data: T[];
+  meta: {
+    pagination: {
+      page: number;
+      pageSize: number;
+      pageCount: number;
+      total: number;
+    };
+  };
+}
+
 /**
  * The raw attributes for an image file stored in Strapi.
  */

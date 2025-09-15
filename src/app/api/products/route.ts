@@ -2,20 +2,18 @@ import { NextResponse } from "next/server";
 import {
   getStrapiURL,
   strapiFetch,
-  type StrapiCollectionResponse,
-  type StrapiDataItem,
+  type StrapiTransformedResponse,
   type StrapiImageAttributes,
 } from "@/lib/strapi";
 
-// Define the expected structure of a Product's attributes from Strapi
-interface ProductAttributes {
+// Define the expected structure of a Product from Strapi with transform plugin
+interface FlatProduct {
+  id: number;
   name: string;
   slug: string;
   price: number;
-  description: string; // Assuming you have a description field
-  image: {
-    data: StrapiDataItem<StrapiImageAttributes>;
-  };
+  description: string;
+  image: StrapiImageAttributes;
 }
 
 /**
@@ -23,13 +21,13 @@ interface ProductAttributes {
  */
 export async function GET() {
   try {
-    // Fetch products from Strapi, populating the 'image' relation
-    const response = await strapiFetch<StrapiCollectionResponse<ProductAttributes>>(
-      "/api/products?populate=image"
+    // Fetch products from Strapi, using the transform plugin for a flat response
+    const response = await strapiFetch<StrapiTransformedResponse<FlatProduct>>(
+      "/api/products?populate=image&transform=true"
     );
 
     // Map the Strapi data structure to a simpler format for the frontend
-    const mappedProducts = (response.data || []).map((p: any) => ({
+    const mappedProducts = (response.data || []).map((p) => ({
       id: String(p.id),
       name: p.name,
       slug: p.slug,
