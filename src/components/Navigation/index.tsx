@@ -58,6 +58,7 @@ export default function Navigation() {
   }, [isMenuOpen]);
 
   const navItems = [
+    { href: "/", label: "главная" },
     { href: "/catalog", label: "каталог" },
     { href: "/history", label: "история" },
     { href: "/collaborations", label: "коллаборации" },
@@ -67,7 +68,7 @@ export default function Navigation() {
   return (
     <nav className="pointer-events-none">
       {/* Desktop/Tablet wide nav */}
-      <div className="hidden sm:flex fixed bottom-6 left-1/2 -translate-x-1/2 z-10 w-[calc(100%-3rem)] max-w-4xl h-[53px] rounded-full bg-black/70 backdrop-blur-sm border border-white/10 items-center justify-center px-6 gap-x-4 md:gap-x-8 lg:gap-x-12 pointer-events-auto transition-colors duration-300">
+      <div className="hidden sm:flex fixed bottom-6 left-1/2 -translate-x-1/2 z-10 h-[53px] rounded-full bg-black/70 backdrop-blur-sm border border-white/10 items-center justify-center px-10 gap-x-4 md:gap-x-8 lg:gap-x-12 pointer-events-auto transition-colors duration-300">
         {navItems.map((item) => (
           <Link
             key={item.href}
