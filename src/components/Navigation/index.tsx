@@ -136,7 +136,7 @@ export default function Navigation() {
           {/* Menu without glass panel */}
           <nav
             onClick={(e) => e.stopPropagation()}
-            className="absolute left-0 top-0 w-[320px] h-[694px] p-8 flex flex-col justify-center items-start gap-[120px]"
+            className="absolute inset-0 w-full h-full p-8 flex flex-col justify-center items-start gap-[120px]"
           >
             {navItems.map((item) => (
               <Link
