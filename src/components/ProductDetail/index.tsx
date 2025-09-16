@@ -17,23 +17,11 @@ interface IProduct {
   additionalInfo: string[];
 }
 
-interface AttributeNode { name?: string | null; value?: string | null }
-interface VariationNode {
-  id: string;
-  name?: string | null;
-  price?: string | null;
-  stockStatus?: string | null;
-  stockQuantity?: number | null;
-  attributes?: { nodes: AttributeNode[] } | null;
-}
-interface MediaNode { sourceUrl?: string | null }
 interface ProductApiNode {
   id: string;
   name: string;
   price?: string | null;
-  variations?: { nodes: VariationNode[] } | null;
-  galleryImages?: { nodes: MediaNode[] } | null;
-  image?: MediaNode | null;
+  image?: string | null;
   description?: string | null;
 }
 
@@ -51,9 +39,6 @@ function formatPrice(raw?: string | null): string {
   return new Intl.NumberFormat("ru-RU").format(num) + " ₽";
 }
 
-function extractNumeric(raw?: string | null): number | null {
-  return parseRublesNumber(raw);
-}
 
 function sanitizeHtmlToLines(html?: string | null): string[] {
   if (!html) return [];
@@ -91,46 +76,18 @@ export default function ProductDetail({ productSlug }: ProductDetailProps) {
 
     const name: string = rawProduct.name ?? "";
 
-    const mainImage: string | undefined = rawProduct.image?.sourceUrl ?? undefined;
-    const gallery: string[] = (rawProduct.galleryImages?.nodes || []).map((n: MediaNode) => n?.sourceUrl || "").filter(Boolean) as string[];
-    const images = [mainImage, ...gallery].filter(Boolean) as string[];
+    // Get main image from Strapi API response
+    const mainImage: string | undefined = rawProduct.image ?? undefined;
+    const images = mainImage ? [mainImage] : ["/items/item-01.jpg"];
 
     const descriptionLines = sanitizeHtmlToLines(rawProduct.description);
 
-    const variationNodes: VariationNode[] = rawProduct.variations?.nodes || [];
-    const sizeValues = Array.from(
-      new Set(
-        variationNodes
-          .flatMap(v => (v.attributes?.nodes || []).map((a: AttributeNode) => a?.value))
-          .filter((val): val is string => typeof val === 'string' && val.length > 0)
-          .map(v => v.toLowerCase())
-      )
-    );
-
-    const available = new Set<string>(
-      variationNodes
-        .filter(v => (v.stockStatus || "").toUpperCase() === "IN_STOCK" || (v.stockQuantity ?? 0) > 0)
-        .flatMap(v => (v.attributes?.nodes || []).map((a: AttributeNode) => (a?.value || "").toLowerCase()))
-    );
-
-    const sizes = sizeValues.length > 0 ? (sizeValues as string[]) : ["s", "m", "l", "xl"];
-    const availableSizes = sizes.filter(s => available.has(s));
+    // Default sizes since we don't have variations from Strapi
+    const sizes = ["s", "m", "l", "xl"];
+    const availableSizes = sizes; // Assume all sizes are available
 
     const parentPriceStr: string | null = rawProduct.price ?? null;
-    const isRange = !!parentPriceStr && /-|&ndash;|–/.test(parentPriceStr);
-
-    const variationNumericPrices: number[] = variationNodes
-      .map(v => extractNumeric(v.price))
-      .filter((n): n is number => typeof n === 'number');
-
-    const minVariation = variationNumericPrices.length > 0 ? Math.min(...variationNumericPrices) : null;
-
-    let finalPrice = "";
-    if (isRange && minVariation !== null) {
-      finalPrice = new Intl.NumberFormat("ru-RU").format(minVariation) + " ₽";
-    } else {
-      finalPrice = formatPrice(parentPriceStr);
-    }
+    const finalPrice = formatPrice(parentPriceStr);
 
     const thumbnails = images;
 
@@ -138,11 +95,11 @@ export default function ProductDetail({ productSlug }: ProductDetailProps) {
       id: rawProduct.id,
       name,
       price: finalPrice,
-      images: images.length ? images : ["/items/item-01.jpg"],
-      thumbnails: thumbnails.length ? thumbnails : ["/items/item-01.jpg"],
+      images: images,
+      thumbnails: thumbnails,
       description: descriptionLines,
       sizes,
-      availableSizes: availableSizes.length ? availableSizes : sizes,
+      availableSizes: availableSizes,
       additionalInfo: [],
     };
 
@@ -219,7 +176,7 @@ export default function ProductDetail({ productSlug }: ProductDetailProps) {
               src={product.images[hoverIndex]}
               alt={product.name}
               fill
-              className="object-cover"
+              className="object-contain"
               sizes="(max-width: 1024px) 100vw, 640px"
               quality={100}
             />
