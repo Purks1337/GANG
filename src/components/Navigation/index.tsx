@@ -128,7 +128,7 @@ export default function Navigation() {
             type="button"
             onClick={closeMenu}
             aria-label="Закрыть меню"
-            className="absolute right-[10px] top-[10px] w-8 h-8 text-[#525252] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3acb00]/70 rounded"
+            className="absolute right-[10px] top-[10px] w-8 h-8 text-[#525252] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3acb00]/70 rounded z-30"
           >
             <svg viewBox="0 0 24 24" className="w-8 h-8" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" /></svg>
           </button>
@@ -136,14 +136,14 @@ export default function Navigation() {
           {/* Menu without glass panel */}
           <nav
             onClick={(e) => e.stopPropagation()}
-            className="absolute inset-0 w-full h-full p-8 flex flex-col justify-center items-start gap-[120px]"
+            className="absolute inset-0 w-full h-full p-8 flex flex-col justify-center items-start gap-[120px] pointer-events-none"
           >
             {navItems.map((item) => (
               <Link
                 key={item.href}
                 href={item.href}
                 onClick={closeMenu}
-                className={`font-black text-[24px] leading-[120%] tracking-[-.015em] uppercase text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3acb00]/70 rounded transition-colors duration-200 ${
+                className={`font-black text-[24px] leading-[120%] tracking-[-.015em] uppercase text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3acb00]/70 rounded transition-colors duration-200 pointer-events-auto ${
                   pathname === item.href
                     ? "text-[#3acb00]"
                     : "text-white"
