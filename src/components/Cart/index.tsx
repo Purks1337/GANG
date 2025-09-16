@@ -32,6 +32,23 @@ export default function Cart() {
     }
   };
 
+  // Function to generate order text for Telegram
+  const generateOrderText = () => {
+    const orderItems = items.map(item => {
+      const sizeText = item.size ? `, размер **${item.size.toUpperCase()}**` : '';
+      return `**${item.name}**${sizeText}`;
+    }).join(', ');
+    
+    return `Привет! Я хочу заказать: ${orderItems}`;
+  };
+
+  // Function to handle checkout via Telegram
+  const handleCheckout = () => {
+    const orderText = generateOrderText();
+    const telegramUrl = `https://t.me/+79923363205?text=${encodeURIComponent(orderText)}`;
+    window.open(telegramUrl, '_blank');
+  };
+
   if (items.length === 0) {
     return (
       <div className="min-h-screen bg-background text-foreground transition-colors duration-300 pt-24 pb-32">
@@ -155,10 +172,7 @@ export default function Cart() {
             </button>
             
             <button
-              onClick={() => {
-                // TODO: Implement checkout flow
-                alert('Оформление заказа будет реализовано в следующих этапах');
-              }}
+              onClick={handleCheckout}
               className="flex-1 px-6 py-3 rounded-full bg-brand-green text-black font-black text-lg tracking-tight uppercase hover:bg-brand-green/90 transition-colors duration-200"
             >
               Оформить заказ
