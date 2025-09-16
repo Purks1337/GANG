@@ -24,14 +24,14 @@ export default function ProductCard({ name, price, image, onClick }: ProductCard
           src={image}
           alt={name}
           fill
-          className="object-cover transition-transform duration-200 group-hover:scale-110"
+          className="object-contain transition-transform duration-200 group-hover:scale-110"
           sizes="(max-width: 640px) 90vw, (max-width: 1024px) 45vw, 379px"
         />
       </div>
       
       {/* Product Info Block - responsive heights */}
       <div className="w-full flex flex-col items-center justify-center
-                      h-[100px] sm:h-[100px] lg:h-[77px] mt-6">
+                      h-[100px] sm:h-[100px] lg:h-[77px] mt-6 sm:mt-0">
         <h3 className="font-extrabold tracking-[-0.33px] text-center transition-colors duration-200
                         text-[24px] sm:text-[28px] lg:text-[33px]
                         leading-[30px] sm:leading-[36px] lg:leading-[42.9px]
