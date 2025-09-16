@@ -168,7 +168,7 @@ export default function ProductDetail({ productSlug }: ProductDetailProps) {
         />
       </div>
 
-      <div className="relative z-10 w-full max-w-[1280px] mx-auto px-4 sm:px-6 pt-20 sm:pt-12 lg:pt-16 pb-12 lg:pb-16">
+      <div className="relative z-10 w-full max-w-[1280px] mx-auto px-4 sm:px-6 pt-20 sm:pt-12 lg:pt-16 pb-20 sm:pb-12 lg:pb-16">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
           {/* Left: Image area - square on mobile, fills height on desktop */}
           <div className="relative w-full aspect-square sm:h-[70vh] sm:min-h-[520px] sm:max-h-[780px] bg-white rounded-[24px] overflow-hidden">
